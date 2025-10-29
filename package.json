@@ -4,13 +4,14 @@
   "description": "Generador de calaveritas personalizadas del Día de Muertos",
   "main": "src/main.js",
   "scripts": {
-    "start": "node src/main.js",
-    "dev": "node --watch src/main.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
   },
   "keywords": ["calaveritas", "día de muertos", "generador", "poesía"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "readline-sync": "^1.4.10"
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   }
 }
