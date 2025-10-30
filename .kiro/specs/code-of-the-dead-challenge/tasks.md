@@ -2,13 +2,31 @@
 
 ## Nivel Ofrenda (Básico) - Fundación Completa
 
-- [ ] 1. Configurar estructura base del proyecto
-  - [ ] 1.1 Inicializar package.json con dependencias completas
+- [x] 1. Configurar estructura base del proyecto
+
+
+
+
+
+
+
+
+
+
+
+
+  - [x] 1.1 Inicializar package.json con dependencias completas
+
+
     - Crear package.json con name: "calaveritas-generator"
+
+
     - Agregar dependencias: express@^4.18.2, cors@^2.8.5
     - Configurar scripts: "start": "node src/server.js", "dev": "node --watch src/server.js"
     - Establecer version: "1.0.0", description, keywords, license: "MIT"
     - _Requirements: 1.5, 4.4_
+
+
   
   - [ ] 1.2 Crear estructura de directorios profesional
     - Crear carpeta src/ para código backend (server.js, generator.js, data-manager.js)

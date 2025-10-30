@@ -5,7 +5,7 @@ const { CalaveriteGenerator } = require('./generator');
 const { DataManager } = require('./data-manager');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors());
