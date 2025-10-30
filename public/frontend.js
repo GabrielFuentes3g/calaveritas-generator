@@ -18,10 +18,15 @@ class CalaveriteApp {
         // Referencias a campos del formulario
         this.nameInput = document.getElementById('nombre');
         this.professionInput = document.getElementById('profesion');
+        this.templateSelect = document.getElementById('template');
         this.traitInput = document.getElementById('caracteristica');
+        this.caracteristicaGroup = document.getElementById('caracteristica-group');
+        this.caracteristicaRequired = document.getElementById('caracteristica-required');
+        this.caracteristicaOptional = document.getElementById('caracteristica-optional');
         
         // Estado de la aplicación
         this.isLoading = false;
+        this.templates = [];
         
         this.init();
     }
@@ -31,6 +36,7 @@ class CalaveriteApp {
      */
     async init() {
         this.setupEventListeners();
+        await this.loadTemplates();
         await this.loadHistory();
         this.hideError();
     }
@@ -45,13 +51,17 @@ class CalaveriteApp {
         // Botón de limpiar historial
         this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
         
+        // Selector de plantillas
+        this.templateSelect.addEventListener('change', () => this.handleTemplateChange());
+        
         // Validación en tiempo real
         this.nameInput.addEventListener('input', () => this.validateField(this.nameInput));
         this.professionInput.addEventListener('input', () => this.validateField(this.professionInput));
         
         // Limpiar errores al escribir
-        [this.nameInput, this.professionInput, this.traitInput].forEach(input => {
+        [this.nameInput, this.professionInput, this.templateSelect, this.traitInput].forEach(input => {
             input.addEventListener('input', () => this.hideError());
+            input.addEventListener('change', () => this.hideError());
         });
     }
 
@@ -73,13 +83,94 @@ class CalaveriteApp {
     }
 
     /**
+     * Carga las plantillas disponibles
+     */
+    async loadTemplates() {
+        try {
+            const response = await fetch('/api/templates');
+            const result = await response.json();
+            
+            if (result.success) {
+                this.templates = result.data;
+                this.populateTemplateSelect();
+            } else {
+                console.error('Error cargando plantillas:', result.error);
+            }
+        } catch (error) {
+            console.error('Error cargando plantillas:', error);
+        }
+    }
+
+    /**
+     * Llena el selector de plantillas
+     */
+    populateTemplateSelect() {
+        // Limpiar opciones existentes (excepto la primera)
+        while (this.templateSelect.children.length > 1) {
+            this.templateSelect.removeChild(this.templateSelect.lastChild);
+        }
+
+        // Agregar plantillas
+        this.templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = `${template.name}${template.requiresTrait ? ' (requiere característica)' : ''}`;
+            option.title = template.description;
+            this.templateSelect.appendChild(option);
+        });
+    }
+
+    /**
+     * Maneja el cambio de plantilla
+     */
+    handleTemplateChange() {
+        const selectedTemplateId = this.templateSelect.value;
+        
+        if (!selectedTemplateId) {
+            // Aleatorio seleccionado
+            this.setTraitFieldOptional();
+            return;
+        }
+
+        const selectedTemplate = this.templates.find(t => t.id === selectedTemplateId);
+        if (selectedTemplate) {
+            if (selectedTemplate.requiresTrait) {
+                this.setTraitFieldRequired();
+            } else {
+                this.setTraitFieldOptional();
+            }
+        }
+    }
+
+    /**
+     * Establece el campo trait como requerido
+     */
+    setTraitFieldRequired() {
+        this.traitInput.required = true;
+        this.caracteristicaRequired.style.display = 'inline';
+        this.caracteristicaOptional.style.display = 'none';
+        this.caracteristicaGroup.classList.add('required-field');
+    }
+
+    /**
+     * Establece el campo trait como opcional
+     */
+    setTraitFieldOptional() {
+        this.traitInput.required = false;
+        this.caracteristicaRequired.style.display = 'none';
+        this.caracteristicaOptional.style.display = 'inline';
+        this.caracteristicaGroup.classList.remove('required-field');
+    }
+
+    /**
      * Obtiene los datos del formulario
      */
     getFormData() {
         return {
             name: this.nameInput.value.trim(),
             profession: this.professionInput.value.trim(),
-            trait: this.traitInput.value.trim() || null
+            trait: this.traitInput.value.trim() || null,
+            templateId: this.templateSelect.value || null
         };
     }
 
@@ -109,6 +200,16 @@ class CalaveriteApp {
             this.showError('La profesión no puede tener más de 50 caracteres');
             this.professionInput.focus();
             return false;
+        }
+
+        // Validar trait según plantilla seleccionada
+        if (data.templateId) {
+            const selectedTemplate = this.templates.find(t => t.id === data.templateId);
+            if (selectedTemplate && selectedTemplate.requiresTrait && !data.trait) {
+                this.showError('Esta plantilla requiere una característica especial');
+                this.traitInput.focus();
+                return false;
+            }
         }
         
         if (data.trait && data.trait.length > 50) {

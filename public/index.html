@@ -47,7 +47,19 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="caracteristica">Característica especial (opcional):</label>
+                    <label for="template">Estilo de calaverita:</label>
+                    <select 
+                        id="template" 
+                        name="template"
+                        aria-describedby="template-help"
+                    >
+                        <option value="">🎲 Sorpréndeme (aleatorio)</option>
+                    </select>
+                    <small id="template-help" class="help-text">Elige un estilo específico o deja aleatorio para sorprenderte</small>
+                </div>
+
+                <div class="form-group" id="caracteristica-group">
+                    <label for="caracteristica">Característica especial <span id="caracteristica-required" style="display: none;">(requerida)</span><span id="caracteristica-optional">(opcional)</span>:</label>
                     <input 
                         type="text" 
                         id="caracteristica" 
@@ -56,7 +68,7 @@
                         placeholder="Ej: alegre, trabajador, divertido..."
                         aria-describedby="caracteristica-help"
                     >
-                    <small id="caracteristica-help" class="help-text">Una característica que describa a la persona (opcional)</small>
+                    <small id="caracteristica-help" class="help-text">Una característica que describa a la persona</small>
                 </div>
 
                 <button type="submit" class="btn-generate" id="btn-generate">
