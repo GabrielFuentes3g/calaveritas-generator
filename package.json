@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "test": "jest --testTimeout=10000",
     "mcp-demo": "node scripts/mcp-demo.js",
     "hooks-demo": "node scripts/demo-hooks.js",
     "demo-mcp-validation": "node scripts/demo-mcp-validation.js",
@@ -26,11 +27,19 @@
     "ci:docs": "node .kiro/hooks/auto-docs.js",
     "ci:predeploy": "node .kiro/hooks/pre-deploy.js"
   },
-  "keywords": ["calaveritas", "día de muertos", "generador", "poesía"],
+  "keywords": [
+    "calaveritas",
+    "día de muertos",
+    "generador",
+    "poesía"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
   }
 }
