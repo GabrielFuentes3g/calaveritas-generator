@@ -48,11 +48,12 @@ class CalaveriteGenerator {
     }));
   }
 
-  generate(name, profession, trait = null) {
-    return this.generateWithTemplate(name, profession, trait);
+  generate(name, profession, trait = null, userAgent = 'server') {
+    return this.generateWithTemplate(name, profession, trait, null, userAgent);
   }
 
-  generateWithTemplate(name, profession, trait = null, templateId = null) {
+  generateWithTemplate(name, profession, trait = null, templateId = null, userAgent = 'server') {
+    const startTime = Date.now();
     let selectedTemplate;
     
     if (templateId) {
@@ -80,6 +81,8 @@ class CalaveriteGenerator {
       text = text.replace(/{trait}/g, trait);
     }
 
+    const generationTime = Date.now() - startTime;
+
     return {
       id: Date.now().toString(),
       name,
@@ -88,8 +91,21 @@ class CalaveriteGenerator {
       templateId: selectedTemplate.id,
       templateName: selectedTemplate.name,
       text,
-      date: new Date().toLocaleDateString('es-MX')
+      date: new Date().toLocaleDateString('es-MX'),
+      metadata: {
+        wordCount: this.calculateWordCount(text),
+        generationTime: generationTime,
+        userAgent: userAgent,
+        createdAt: new Date().toISOString(),
+        version: '2.0'
+      }
     };
+  }
+
+  // Calcular número de palabras en el texto
+  calculateWordCount(text) {
+    if (!text || typeof text !== 'string') return 0;
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   }
 }
 

@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const { CalaveriteGenerator } = require('./generator');
 const { DataManager } = require('./data-manager');
+const { CalaveriteValidator } = require('./validator');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,24 +16,43 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Instancias
 const generator = new CalaveriteGenerator();
 const dataManager = new DataManager();
+const validator = new CalaveriteValidator();
 
 // Rutas API
 app.post('/api/generate', (req, res) => {
   try {
     const { name, profession, trait, templateId } = req.body;
+    const userAgent = req.get('User-Agent') || 'unknown';
     
-    // Validación de campos requeridos
-    if (!name || !profession) {
+    // Validación avanzada con el validator
+    const validation = validator.validateInput({ name, profession, trait, templateId });
+    
+    if (!validation.isValid) {
       return res.status(400).json({ 
         success: false,
-        error: 'Nombre y profesión son requeridos',
-        message: 'Bad Request: Faltan campos obligatorios'
+        error: 'Datos de entrada no válidos',
+        message: 'Bad Request: ' + validation.errors.join(', '),
+        validationErrors: validation.errors
       });
     }
 
+    // Usar datos sanitizados
+    const sanitizedData = validation.sanitizedData;
+    
     const calaverita = templateId 
-      ? generator.generateWithTemplate(name, profession, trait, templateId)
-      : generator.generate(name, profession, trait);
+      ? generator.generateWithTemplate(
+          sanitizedData.name, 
+          sanitizedData.profession, 
+          sanitizedData.trait, 
+          sanitizedData.templateId, 
+          userAgent
+        )
+      : generator.generate(
+          sanitizedData.name, 
+          sanitizedData.profession, 
+          sanitizedData.trait, 
+          userAgent
+        );
       
     const saved = dataManager.saveCalaverita(calaverita);
     
@@ -113,6 +133,67 @@ app.delete('/api/history', (req, res) => {
       success: false,
       error: error.message,
       message: 'Server Error: Error interno del servidor'
+    });
+  }
+});
+
+app.get('/api/stats', (req, res) => {
+  try {
+    const stats = dataManager.getHistoryStats();
+    res.json({ 
+      success: true,
+      data: stats,
+      message: 'Estadísticas obtenidas exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudieron obtener las estadísticas'
+    });
+  }
+});
+
+app.get('/api/validation/rules', (req, res) => {
+  try {
+    const rules = validator.getValidationRules();
+    res.json({ 
+      success: true,
+      data: rules,
+      message: 'Reglas de validación obtenidas exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudieron obtener las reglas de validación'
+    });
+  }
+});
+
+app.post('/api/validation/field', (req, res) => {
+  try {
+    const { fieldName, value } = req.body;
+    
+    if (!fieldName) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Campo fieldName es requerido',
+        message: 'Bad Request: Falta el nombre del campo'
+      });
+    }
+
+    const validation = validator.validateFieldRealTime(fieldName, value);
+    res.json({ 
+      success: true,
+      data: validation,
+      message: 'Validación de campo completada'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error validando campo'
     });
   }
 });

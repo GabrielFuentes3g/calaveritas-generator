@@ -27,6 +27,8 @@ class CalaveriteApp {
         // Estado de la aplicación
         this.isLoading = false;
         this.templates = [];
+        this.validationRules = null;
+        this.validationTimeouts = {};
         
         this.init();
     }
@@ -36,6 +38,7 @@ class CalaveriteApp {
      */
     async init() {
         this.setupEventListeners();
+        await this.loadValidationRules();
         await this.loadTemplates();
         await this.loadHistory();
         this.hideError();
@@ -55,8 +58,9 @@ class CalaveriteApp {
         this.templateSelect.addEventListener('change', () => this.handleTemplateChange());
         
         // Validación en tiempo real
-        this.nameInput.addEventListener('input', () => this.validateField(this.nameInput));
-        this.professionInput.addEventListener('input', () => this.validateField(this.professionInput));
+        this.nameInput.addEventListener('input', () => this.validateFieldRealTime('name', this.nameInput));
+        this.professionInput.addEventListener('input', () => this.validateFieldRealTime('profession', this.professionInput));
+        this.traitInput.addEventListener('input', () => this.validateFieldRealTime('trait', this.traitInput));
         
         // Limpiar errores al escribir
         [this.nameInput, this.professionInput, this.templateSelect, this.traitInput].forEach(input => {
@@ -80,6 +84,87 @@ class CalaveriteApp {
         }
 
         await this.generateCalaverita(formData);
+    }
+
+    /**
+     * Carga las reglas de validación
+     */
+    async loadValidationRules() {
+        try {
+            const response = await fetch('/api/validation/rules');
+            const result = await response.json();
+            
+            if (result.success) {
+                this.validationRules = result.data;
+                this.setupValidationUI();
+            } else {
+                console.error('Error cargando reglas de validación:', result.error);
+            }
+        } catch (error) {
+            console.error('Error cargando reglas de validación:', error);
+        }
+    }
+
+    /**
+     * Configura la UI de validación
+     */
+    setupValidationUI() {
+        if (!this.validationRules) return;
+
+        // Configurar atributos de validación en los inputs
+        Object.keys(this.validationRules).forEach(fieldName => {
+            const rule = this.validationRules[fieldName];
+            const input = this.getInputByFieldName(fieldName);
+            
+            if (input) {
+                input.setAttribute('maxlength', rule.maxLength);
+                input.setAttribute('minlength', rule.minLength);
+                
+                // Agregar indicadores visuales
+                this.addValidationIndicator(input, fieldName);
+            }
+        });
+    }
+
+    /**
+     * Obtiene el input por nombre de campo
+     */
+    getInputByFieldName(fieldName) {
+        const inputMap = {
+            'name': this.nameInput,
+            'profession': this.professionInput,
+            'trait': this.traitInput
+        };
+        return inputMap[fieldName];
+    }
+
+    /**
+     * Agrega indicador de validación al campo
+     */
+    addValidationIndicator(input, fieldName) {
+        const container = input.parentElement;
+        
+        // Crear contenedor de validación si no existe
+        let validationContainer = container.querySelector('.validation-feedback');
+        if (!validationContainer) {
+            validationContainer = document.createElement('div');
+            validationContainer.className = 'validation-feedback';
+            container.appendChild(validationContainer);
+        }
+
+        // Agregar contador de caracteres
+        const rule = this.validationRules[fieldName];
+        const counter = document.createElement('div');
+        counter.className = 'char-counter';
+        counter.textContent = `0/${rule.maxLength}`;
+        validationContainer.appendChild(counter);
+
+        // Actualizar contador en tiempo real
+        input.addEventListener('input', () => {
+            const length = input.value.length;
+            counter.textContent = `${length}/${rule.maxLength}`;
+            counter.className = `char-counter ${length > rule.maxLength * 0.8 ? 'warning' : ''}`;
+        });
     }
 
     /**
@@ -222,7 +307,130 @@ class CalaveriteApp {
     }
 
     /**
-     * Valida un campo individual
+     * Validación en tiempo real de campos
+     */
+    async validateFieldRealTime(fieldName, input) {
+        const value = input.value;
+        
+        // Limpiar timeout anterior
+        if (this.validationTimeouts[fieldName]) {
+            clearTimeout(this.validationTimeouts[fieldName]);
+        }
+
+        // Validación inmediata para longitud
+        this.validateFieldLength(input, fieldName);
+
+        // Validación del servidor con debounce
+        this.validationTimeouts[fieldName] = setTimeout(async () => {
+            if (value.trim().length > 0) {
+                await this.validateFieldOnServer(fieldName, value, input);
+            } else {
+                this.clearFieldValidation(input);
+            }
+        }, 500); // 500ms de debounce
+    }
+
+    /**
+     * Validación inmediata de longitud
+     */
+    validateFieldLength(input, fieldName) {
+        const value = input.value;
+        const rule = this.validationRules?.[fieldName];
+        
+        if (!rule) return;
+
+        const container = input.parentElement;
+        let feedback = container.querySelector('.validation-message');
+        
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'validation-message';
+            container.appendChild(feedback);
+        }
+
+        // Validar longitud
+        if (value.length > rule.maxLength) {
+            this.showFieldError(input, feedback, `Máximo ${rule.maxLength} caracteres`);
+        } else if (value.trim().length > 0 && value.trim().length < rule.minLength) {
+            this.showFieldError(input, feedback, `Mínimo ${rule.minLength} caracteres`);
+        } else {
+            this.clearFieldValidation(input);
+        }
+    }
+
+    /**
+     * Validación en el servidor
+     */
+    async validateFieldOnServer(fieldName, value, input) {
+        try {
+            const response = await fetch('/api/validation/field', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fieldName, value })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                const validation = result.data;
+                const container = input.parentElement;
+                let feedback = container.querySelector('.validation-message');
+                
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'validation-message';
+                    container.appendChild(feedback);
+                }
+
+                if (validation.isValid) {
+                    this.showFieldSuccess(input, feedback);
+                } else {
+                    this.showFieldError(input, feedback, validation.message);
+                }
+            }
+        } catch (error) {
+            console.error('Error validando campo:', error);
+        }
+    }
+
+    /**
+     * Muestra error en campo
+     */
+    showFieldError(input, feedback, message) {
+        input.classList.remove('valid');
+        input.classList.add('invalid');
+        feedback.className = 'validation-message error';
+        feedback.textContent = message;
+        feedback.style.display = 'block';
+    }
+
+    /**
+     * Muestra éxito en campo
+     */
+    showFieldSuccess(input, feedback) {
+        input.classList.remove('invalid');
+        input.classList.add('valid');
+        feedback.className = 'validation-message success';
+        feedback.textContent = '✓ Válido';
+        feedback.style.display = 'block';
+    }
+
+    /**
+     * Limpia validación de campo
+     */
+    clearFieldValidation(input) {
+        input.classList.remove('valid', 'invalid');
+        const container = input.parentElement;
+        const feedback = container.querySelector('.validation-message');
+        if (feedback) {
+            feedback.style.display = 'none';
+        }
+    }
+
+    /**
+     * Valida un campo individual (método legacy)
      */
     validateField(input) {
         const value = input.value.trim();

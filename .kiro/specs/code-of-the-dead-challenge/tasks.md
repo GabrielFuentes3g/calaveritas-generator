@@ -151,9 +151,13 @@
     - Implementar sistema de alertas para éxito/error (mejorable a toast)
     - _Requirements: 2.4, 5.5_
 
-- [ ] 7. Mejorar persistencia y modelo de datos
+- [-] 7. Mejorar persistencia y modelo de datos
 
-  - [ ] 7.1 Expandir modelo de datos completo
+
+
+
+  - [x] 7.1 Expandir modelo de datos completo
+
 
     - Actualizar estructura calaverita: agregar templateId, templateName
     - Implementar metadatos: {wordCount, generationTime, userAgent}
@@ -163,6 +167,8 @@
     - _Requirements: 2.2_
 
   - [ ] 7.2 Implementar validaciones contextuales avanzadas
+
+
     - Crear validación específica por plantilla en frontend y backend
     - Implementar sanitización de datos: trim(), validación de longitud
     - Agregar validación de caracteres especiales y formato

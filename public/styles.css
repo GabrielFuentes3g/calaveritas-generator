@@ -723,3 +723,187 @@ input:focus-visible {
 .history-container::-webkit-scrollbar-thumb:hover {
     background: #e55a2b;
 }
+/
+* Estilos de validación en tiempo real */
+.validation-feedback {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.validation-message {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    display: none;
+    transition: all var(--transition-fast);
+}
+
+.validation-message.error {
+    color: var(--error-red);
+    background-color: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.validation-message.success {
+    color: var(--success-green);
+    background-color: rgba(22, 163, 74, 0.1);
+    border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.char-counter {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    transition: color var(--transition-fast);
+}
+
+.char-counter.warning {
+    color: var(--accent-orange);
+    font-weight: 600;
+}
+
+/* Estados de validación para inputs */
+input.valid {
+    border-color: var(--success-green);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+input.invalid {
+    border-color: var(--error-red);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+input.valid:focus {
+    border-color: var(--success-green);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+input.invalid:focus {
+    border-color: var(--error-red);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* Animaciones para validación */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.validation-message.error {
+    animation: shake 0.3s ease-in-out;
+}
+
+/* Estilos para campos requeridos */
+.required-field label::after {
+    content: " *";
+    color: var(--error-red);
+    font-weight: bold;
+}
+
+/* Mejoras responsivas para validación */
+@media (max-width: 768px) {
+    .validation-feedback {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .validation-message {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .char-counter {
+        font-size: 0.7rem;
+        align-self: flex-end;
+    }
+}
+
+/* Estados de carga mejorados */
+.loading-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading-shimmer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    animation: shimmer 1.5s infinite;
+    z-index: 1;
+    pointer-events: none;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Estilos para mensajes de error mejorados */
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, var(--error-red) 0%, #ef4444 100%);
+    color: white;
+    border-radius: 12px;
+    margin: 1rem 0;
+    box-shadow: var(--shadow-lg);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.error-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.error-text {
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* Animaciones suaves */
+.smooth-show {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.smooth-hide {
+    animation: fadeOutDown 0.3s ease-in;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOutDown {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
