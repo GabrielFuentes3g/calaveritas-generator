@@ -4,6 +4,7 @@ const path = require('path');
 const { CalaveriteGenerator } = require('./generator');
 const { DataManager } = require('./data-manager');
 const { CalaveriteValidator } = require('./validator');
+const { AnalyticsManager } = require('./analytics-manager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 const generator = new CalaveriteGenerator();
 const dataManager = new DataManager();
 const validator = new CalaveriteValidator();
+const analyticsManager = new AnalyticsManager(dataManager);
 
 // Rutas API
 app.post('/api/generate', (req, res) => {
@@ -55,6 +57,11 @@ app.post('/api/generate', (req, res) => {
         );
       
     const saved = dataManager.saveCalaverita(calaverita);
+    
+    // Track analytics
+    if (saved) {
+      analyticsManager.trackGeneration(calaverita, userAgent);
+    }
     
     if (saved) {
       res.json({ 
@@ -447,6 +454,11 @@ app.post('/api/mcp/generate-enhanced', async (req, res) => {
     // Guardar con metadatos MCP
     const saved = dataManager.saveCalaverita(calaverita);
     
+    // Track analytics with MCP context
+    if (saved) {
+      analyticsManager.trackGeneration(calaverita, userAgent);
+    }
+    
     if (saved) {
       res.json({
         success: true,
@@ -465,6 +477,204 @@ app.post('/api/mcp/generate-enhanced', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Server Error: Error en generación MCP mejorada'
+    });
+  }
+});
+
+// Analytics and Monitoring Endpoints
+app.get('/api/analytics/dashboard', async (req, res) => {
+  try {
+    const dashboard = analyticsManager.getDashboardData();
+    res.json({
+      success: true,
+      data: dashboard,
+      message: 'Dashboard de analytics obtenido exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo obtener el dashboard de analytics'
+    });
+  }
+});
+
+app.get('/api/analytics/templates', async (req, res) => {
+  try {
+    const templateAnalytics = await analyticsManager.getTemplateAnalytics();
+    res.json({
+      success: true,
+      data: templateAnalytics,
+      message: 'Analytics de plantillas obtenido exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo obtener analytics de plantillas'
+    });
+  }
+});
+
+app.get('/api/analytics/realtime', (req, res) => {
+  try {
+    const realTimeMetrics = analyticsManager.getRealTimeMetrics();
+    res.json({
+      success: true,
+      data: realTimeMetrics,
+      message: 'Métricas en tiempo real obtenidas exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudieron obtener métricas en tiempo real'
+    });
+  }
+});
+
+app.get('/api/analytics/report', async (req, res) => {
+  try {
+    const report = await analyticsManager.generateAnalyticsReport();
+    res.json({
+      success: true,
+      data: report,
+      message: 'Reporte de analytics generado exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo generar el reporte de analytics'
+    });
+  }
+});
+
+app.post('/api/analytics/export', async (req, res) => {
+  try {
+    const { format = 'json', includeInsights = true } = req.body;
+    
+    const report = await analyticsManager.generateAnalyticsReport();
+    
+    // Generate filename with timestamp
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+    const filename = `analytics-report-${dateStr}-${timeStr}.${format}`;
+    
+    // Configure headers for download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    const exportData = {
+      exportInfo: {
+        exportDate: now.toISOString(),
+        format: format,
+        includeInsights: includeInsights,
+        generatedBy: 'MCP Analytics System'
+      },
+      report: includeInsights ? report : {
+        ...report,
+        insights: undefined,
+        recommendations: undefined
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: exportData,
+      filename: filename,
+      message: 'Reporte de analytics exportado exitosamente'
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo exportar el reporte de analytics'
+    });
+  }
+});
+
+// MCP Analytics Integration Endpoints
+app.get('/api/mcp/analytics/status', (req, res) => {
+  try {
+    const mcpStatus = generator.getMCPStatus();
+    const analyticsStatus = {
+      mcpEnabled: mcpStatus.mcpEnabled,
+      analyticsActive: true,
+      monitoringFeatures: [
+        'Template usage tracking',
+        'Quality metrics with MCP validation',
+        'Real-time generation monitoring',
+        'Cultural and poetic scoring',
+        'User behavior analytics'
+      ],
+      integrationHealth: mcpStatus.mcpEnabled ? 'optimal' : 'basic'
+    };
+    
+    res.json({
+      success: true,
+      data: analyticsStatus,
+      message: 'Estado de analytics MCP obtenido exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo obtener el estado de analytics MCP'
+    });
+  }
+});
+
+app.post('/api/mcp/analytics/validate-quality', async (req, res) => {
+  try {
+    const { templateId } = req.body;
+    
+    if (!templateId) {
+      return res.status(400).json({
+        success: false,
+        error: 'templateId es requerido',
+        message: 'Bad Request: Falta el ID de la plantilla'
+      });
+    }
+    
+    // Get template from generator
+    const templates = generator.getTemplates();
+    const template = templates.find(t => t.id === templateId);
+    
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        error: 'Plantilla no encontrada',
+        message: 'Not Found: La plantilla especificada no existe'
+      });
+    }
+    
+    // Validate with MCP
+    const validation = await generator.validateTemplateWithMCP({
+      id: template.id,
+      name: template.name,
+      pattern: `Plantilla ${template.name}` // Simplified for demo
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        templateId: templateId,
+        templateName: template.name,
+        validation: validation,
+        qualityScore: Math.round((validation.culturalScore + validation.poeticScore) / 2)
+      },
+      message: 'Validación de calidad MCP completada'
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error en validación de calidad MCP'
     });
   }
 });

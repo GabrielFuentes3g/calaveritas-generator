@@ -9,6 +9,7 @@ class CalaveriteApp {
         this.generateBtn = document.getElementById('btn-generate');
         this.clearHistoryBtn = document.getElementById('btn-clear-history');
         this.exportBtn = document.getElementById('btn-export-history');
+        this.analyticsBtn = document.getElementById('btn-analytics');
         this.searchInput = document.getElementById('search-input');
         this.searchClearBtn = document.getElementById('btn-search-clear');
         this.searchResultsInfo = document.getElementById('search-results-info');
@@ -37,6 +38,9 @@ class CalaveriteApp {
         this.allHistory = [];
         this.filteredHistory = [];
         
+        // Initialize analytics dashboard
+        this.analyticsDashboard = new AnalyticsDashboard();
+        
         this.init();
     }
 
@@ -63,6 +67,9 @@ class CalaveriteApp {
         
         // Botón de exportar historial
         this.exportBtn.addEventListener('click', () => this.exportHistory());
+        
+        // Botón de analytics
+        this.analyticsBtn.addEventListener('click', () => this.toggleAnalyticsDashboard());
         
         // Campo de búsqueda
         this.searchInput.addEventListener('input', () => this.handleSearchInput());
@@ -1092,6 +1099,18 @@ class CalaveriteApp {
                 this.errorMessage.style.display = 'none';
                 this.errorMessage.classList.remove('smooth-hide');
             }, 300);
+        }
+    }
+
+    /**
+     * Toggle analytics dashboard
+     */
+    toggleAnalyticsDashboard() {
+        if (this.analyticsDashboard) {
+            this.analyticsDashboard.toggleDashboard();
+        } else {
+            console.error('Analytics dashboard not initialized');
+            this.showError('Dashboard de analytics no disponible');
         }
     }
 

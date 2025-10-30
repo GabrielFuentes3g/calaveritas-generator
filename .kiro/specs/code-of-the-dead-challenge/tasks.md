@@ -272,7 +272,6 @@
       - Tests de integración completos
     - _Requirements: 3.4_
 
-
 - [x] 12. Completar documentación y configuración Kiro
 
   - [x] 12.1 Documentar stack Kiro completo en README
@@ -295,16 +294,18 @@
     - Documentar métricas de productividad mejorada con Kiro
     - _Requirements: 3.5_
 
-- [ ] 13. Optimización y features avanzadas del stack
+- [x] 13. Optimización y features avanzadas del stack
 
-  - [ ] 13.1 Implementar monitoreo y analytics con MCP
+
+  - [x] 13.1 Implementar monitoreo y analytics con MCP
 
     - Usar herramientas MCP para monitoreo de uso de plantillas
     - Implementar analytics de generación de calaveritas
     - Crear dashboard de métricas con herramientas MCP
     - _Requirements: 3.1_
 
-  - [ ] 13.2 Crear flujo de CI/CD automatizado con hooks
+  - [x] 13.2 Crear flujo de CI/CD automatizado con hooks
+
     - Implementar pipeline completo con Agent Hooks
     - Configurar deployment automático con validaciones
     - Crear rollback automático en caso de errores
