@@ -347,6 +347,128 @@ app.post('/api/export', (req, res) => {
   }
 });
 
+// MCP Integration Endpoints
+app.get('/api/mcp/status', (req, res) => {
+  try {
+    const mcpStatus = generator.getMCPStatus();
+    res.json({
+      success: true,
+      data: mcpStatus,
+      message: 'Estado MCP obtenido exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo obtener el estado MCP'
+    });
+  }
+});
+
+app.post('/api/mcp/validate-template', async (req, res) => {
+  try {
+    const { template } = req.body;
+    
+    if (!template || !template.pattern) {
+      return res.status(400).json({
+        success: false,
+        error: 'Template con pattern es requerido',
+        message: 'Bad Request: Falta la plantilla a validar'
+      });
+    }
+    
+    const validation = await generator.validateTemplateWithMCP(template);
+    res.json({
+      success: true,
+      data: validation,
+      message: 'Validación MCP completada'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error en validación MCP'
+    });
+  }
+});
+
+app.post('/api/mcp/generate-template', async (req, res) => {
+  try {
+    const { theme, style = 'tradicional' } = req.body;
+    
+    if (!theme) {
+      return res.status(400).json({
+        success: false,
+        error: 'Theme es requerido',
+        message: 'Bad Request: Falta el tema para generar plantilla'
+      });
+    }
+    
+    const newTemplate = await generator.generateTemplateWithMCP(theme, style);
+    res.json({
+      success: true,
+      data: newTemplate,
+      message: 'Plantilla generada con MCP exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error generando plantilla con MCP'
+    });
+  }
+});
+
+app.post('/api/mcp/generate-enhanced', async (req, res) => {
+  try {
+    const { name, profession, trait, templateId } = req.body;
+    const userAgent = req.get('User-Agent') || 'unknown';
+    
+    // Validación básica
+    const validation = validator.validateInput({ name, profession, trait, templateId });
+    
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Datos de entrada no válidos',
+        message: 'Bad Request: ' + validation.errors.join(', '),
+        validationErrors: validation.errors
+      });
+    }
+    
+    // Generar con contexto MCP mejorado
+    const calaverita = await generator.generateWithMCPContext(
+      validation.sanitizedData.name,
+      validation.sanitizedData.profession,
+      validation.sanitizedData.trait,
+      validation.sanitizedData.templateId
+    );
+    
+    // Guardar con metadatos MCP
+    const saved = dataManager.saveCalaverita(calaverita);
+    
+    if (saved) {
+      res.json({
+        success: true,
+        data: calaverita,
+        message: 'Calaverita generada con contexto MCP mejorado'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Error guardando calaverita',
+        message: 'Server Error: No se pudo guardar la calaverita'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error en generación MCP mejorada'
+    });
+  }
+});
+
 // Servir la aplicación web
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

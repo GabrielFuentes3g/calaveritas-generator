@@ -60,3 +60,109 @@ calaveritas-generator/
 - **De la Montaña** - Estilo rústico y sencillo
 
 ¡Perfecto para celebrar el Día de Muertos con humor y tradición! 🌺
+
+## 🔧 Kiro Stack Integration
+
+### MCP (Model Context Protocol) Configuration
+
+Este proyecto incluye integración completa con el stack de Kiro, incluyendo configuración MCP para herramientas avanzadas de desarrollo.
+
+#### Instalación de uv/uvx
+
+Para usar las herramientas MCP, necesitas instalar `uv` y `uvx`:
+
+**Windows (PowerShell):**
+```powershell
+# Opción 1: Usando pip
+pip install uv
+
+# Opción 2: Usando Chocolatey
+choco install uv
+
+# Opción 3: Descarga directa
+Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
+```
+
+**macOS/Linux:**
+```bash
+# Usando curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Usando brew (macOS)
+brew install uv
+
+# Usando pip
+pip install uv
+```
+
+#### Configuración MCP
+
+El archivo `.kiro/settings/mcp.json` está configurado con herramientas específicas para calaveritas:
+
+```json
+{
+  "mcpServers": {
+    "calaverita-tools": {
+      "command": "uvx",
+      "args": ["calaverita-mcp-server@latest"],
+      "disabled": false,
+      "autoApprove": [
+        "generate_template",
+        "validate_poem",
+        "cultural_check"
+      ]
+    }
+  }
+}
+```
+
+#### Herramientas MCP Disponibles
+
+1. **generate_template**: Genera nuevas plantillas de calaveritas con contexto cultural
+2. **validate_poem**: Valida métricas poéticas y estructura tradicional
+3. **cultural_check**: Verifica autenticidad cultural y tono apropiado
+
+#### Verificación de Instalación
+
+```bash
+# Verificar instalación de uv
+uv --version
+
+# Verificar uvx
+uvx --version
+
+# Probar servidor MCP (opcional)
+uvx calaverita-mcp-server@latest --help
+```
+
+#### Uso en Desarrollo
+
+Las herramientas MCP se integran automáticamente en el flujo de desarrollo de Kiro:
+
+- **Validación automática** de nuevas plantillas
+- **Generación asistida** de contenido cultural
+- **Verificación de autenticidad** en tiempo real
+- **Métricas poéticas** tradicionales
+
+**📋 Flujo de Desarrollo Completo**: Ver [docs/mcp-development-workflow.md](docs/mcp-development-workflow.md) para guía detallada del proceso MCP → Validación → Integración.
+
+#### Troubleshooting MCP
+
+**Problema: "uvx command not found"**
+- Solución: Instalar uv siguiendo las instrucciones arriba
+- Verificar que uv esté en el PATH del sistema
+
+**Problema: "MCP server not responding"**
+- Solución: Verificar conexión a internet para descargar el servidor
+- Reiniciar Kiro después de cambios en configuración MCP
+
+**Problema: "Auto-approve not working"**
+- Solución: Verificar que las herramientas estén listadas correctamente en autoApprove
+- Reconectar servidor MCP desde el panel de Kiro
+
+#### Beneficios del Stack Kiro
+
+- **Desarrollo acelerado** con herramientas contextuales
+- **Validación automática** de contenido cultural
+- **Calidad mejorada** con métricas poéticas tradicionales
+- **Flujo integrado** de desarrollo y validación

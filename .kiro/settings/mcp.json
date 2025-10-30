@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "calaverita-tools": {
+      "command": "uvx",
+      "args": ["calaverita-mcp-server@latest"],
+      "disabled": false,
+      "autoApprove": [
+        "generate_template",
+        "validate_poem",
+        "cultural_check"
+      ]
+    }
+  }
+}

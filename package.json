@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "mcp-demo": "node scripts/mcp-demo.js"
   },
   "keywords": ["calaveritas", "día de muertos", "generador", "poesía"],
   "author": "",

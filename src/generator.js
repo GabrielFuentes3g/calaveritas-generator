@@ -1,5 +1,8 @@
+const { MCPIntegration } = require('./mcp-integration');
+
 class CalaveriteGenerator {
   constructor() {
+    this.mcpIntegration = new MCPIntegration();
     this.templates = [
       {
         id: 'clasica',
@@ -106,6 +109,86 @@ class CalaveriteGenerator {
   calculateWordCount(text) {
     if (!text || typeof text !== 'string') return 0;
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  /**
+   * MCP-Enhanced Methods for Development Workflow
+   */
+
+  // Validate a template using MCP tools
+  async validateTemplateWithMCP(template) {
+    console.log(`🎭 Validando plantilla "${template.name}" con herramientas MCP...`);
+    return await this.mcpIntegration.enhancedValidationWorkflow(template);
+  }
+
+  // Generate new template using MCP assistance
+  async generateTemplateWithMCP(theme, style = 'tradicional') {
+    console.log(`🎨 Generando nueva plantilla con tema "${theme}" usando MCP...`);
+    const newTemplate = await this.mcpIntegration.generateTemplate(theme, style);
+    
+    if (newTemplate.mcpGenerated) {
+      console.log(`✨ Plantilla generada exitosamente con MCP`);
+      console.log(`📊 Puntuación cultural: ${newTemplate.culturalScore}/100`);
+      console.log(`🎵 Puntuación poética: ${newTemplate.poeticScore}/100`);
+    }
+    
+    return newTemplate;
+  }
+
+  // Add new template with MCP validation
+  async addTemplateWithValidation(template) {
+    console.log('🔍 Iniciando proceso de validación e integración...');
+    
+    // Step 1: MCP Validation
+    const validation = await this.validateTemplateWithMCP(template);
+    
+    // Step 2: Integration decision
+    if (validation.shouldIntegrate) {
+      this.templates.push({
+        ...template,
+        validated: true,
+        validationScore: {
+          cultural: validation.culturalScore,
+          poetic: validation.poeticScore
+        },
+        addedAt: new Date().toISOString()
+      });
+      
+      console.log(`✅ Plantilla "${template.name}" integrada exitosamente`);
+      return { success: true, template, validation };
+    } else {
+      console.log(`❌ Plantilla "${template.name}" no cumple los criterios de calidad`);
+      return { success: false, template, validation };
+    }
+  }
+
+  // Get MCP integration status
+  getMCPStatus() {
+    return this.mcpIntegration.getIntegrationStatus();
+  }
+
+  // Enhanced generation with MCP context
+  async generateWithMCPContext(name, profession, trait = null, templateId = null) {
+    console.log('🎭 Generando calaverita con contexto MCP mejorado...');
+    
+    // Use standard generation
+    const calaverita = this.generateWithTemplate(name, profession, trait, templateId);
+    
+    // Add MCP validation to the generated content
+    if (this.mcpIntegration.mcpEnabled) {
+      const validation = await this.mcpIntegration.validateTemplate({
+        pattern: calaverita.text,
+        name: 'Generated Content'
+      });
+      
+      calaverita.metadata.mcpValidation = {
+        culturalScore: validation.culturalScore,
+        poeticScore: validation.poeticScore,
+        suggestions: validation.suggestions
+      };
+    }
+    
+    return calaverita;
   }
 }
 
