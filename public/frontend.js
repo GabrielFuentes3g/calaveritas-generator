@@ -270,20 +270,28 @@ class CalaveriteApp {
     }
 
     /**
-     * Muestra la calaverita generada
+     * Muestra la calaverita generada con animaciones mejoradas
      */
     displayCalaverita(calaverita) {
+        // Limpiar clases de animación previas
+        this.resultSection.classList.remove('fade-in', 'bounce-in', 'slide-in-right');
+        
         this.calaveriteResult.textContent = calaverita.text;
         this.resultSection.style.display = 'block';
-        this.resultSection.classList.add('fade-in');
         
-        // Scroll suave al resultado
+        // Aplicar animación con un pequeño delay para mejor efecto
+        setTimeout(() => {
+            this.resultSection.classList.add('bounce-in');
+        }, 50);
+        
+        // Scroll suave al resultado con mejor timing
         setTimeout(() => {
             this.resultSection.scrollIntoView({ 
                 behavior: 'smooth', 
-                block: 'start' 
+                block: 'center',
+                inline: 'nearest'
             });
-        }, 100);
+        }, 300);
     }
 
     /**
@@ -319,24 +327,33 @@ class CalaveriteApp {
         this.emptyHistory.style.display = 'none';
         this.historyList.style.display = 'block';
 
-        // Ordenar por fecha (más recientes primero)
-        const sortedHistory = [...history].reverse();
+        // Ordenar por fecha (más recientes primero) - ordenamiento cronológico inverso
+        const sortedHistory = [...history].sort((a, b) => {
+            return new Date(b.date) - new Date(a.date);
+        });
 
-        // Generar HTML del historial
+        // Generar HTML del historial con diseño de tarjetas mejorado
         const historyHTML = sortedHistory.map(calaverita => {
             const preview = this.getPreview(calaverita.text);
-            const templateInfo = calaverita.templateName ? ` (${calaverita.templateName})` : '';
+            const formattedDate = this.formatDate(calaverita.date);
+            const templateInfo = calaverita.templateName || calaverita.templateId || 'Aleatorio';
             
             return `
                 <div class="history-item" data-id="${calaverita.id}">
                     <div class="history-item-header">
-                        <span class="history-item-title">
-                            💀 ${calaverita.name} - ${calaverita.profession}${templateInfo}
-                        </span>
-                        <span class="history-item-date">${calaverita.date}</span>
+                        <div class="history-item-title">
+                            💀 ${this.escapeHtml(calaverita.name)} - ${this.escapeHtml(calaverita.profession)}
+                        </div>
+                        <div class="history-item-meta">
+                            <div class="history-item-date">${formattedDate}</div>
+                            <div class="history-item-template">📝 ${this.escapeHtml(templateInfo)}</div>
+                        </div>
                     </div>
                     <div class="history-item-preview">
-                        ${preview}
+                        ${this.escapeHtml(preview)}
+                    </div>
+                    <div class="history-item-click-hint">
+                        👆 Clic para ver completa
                     </div>
                 </div>
             `;
@@ -348,7 +365,7 @@ class CalaveriteApp {
         this.historyList.querySelectorAll('.history-item').forEach(item => {
             item.addEventListener('click', () => {
                 const id = item.dataset.id;
-                const calaverita = history.find(c => c.id === id);
+                const calaverita = sortedHistory.find(c => c.id === id);
                 if (calaverita) {
                     this.displayCalaverita(calaverita);
                 }
@@ -369,16 +386,77 @@ class CalaveriteApp {
      */
     getPreview(text) {
         const firstLine = text.split('\n')[0];
-        return firstLine.length > 80 ? firstLine.substring(0, 80) + '...' : firstLine;
+        return firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
     }
 
     /**
-     * Limpia el historial
+     * Formatea la fecha para mostrar en el historial
+     */
+    formatDate(dateString) {
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                return 'Hoy';
+            } else if (diffDays === 2) {
+                return 'Ayer';
+            } else if (diffDays <= 7) {
+                return `Hace ${diffDays - 1} días`;
+            } else {
+                return date.toLocaleDateString('es-MX', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+                });
+            }
+        } catch (error) {
+            return dateString;
+        }
+    }
+
+    /**
+     * Escapa HTML para prevenir XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Limpia el historial con confirmación y feedback visual
      */
     async clearHistory() {
-        if (!confirm('¿Estás seguro de que quieres limpiar todo el historial? Esta acción no se puede deshacer.')) {
+        // Verificar si hay historial para limpiar
+        try {
+            const response = await fetch('/api/history');
+            const result = await response.json();
+            
+            if (!result.success || !result.data || result.data.length === 0) {
+                this.showError('No hay historial para limpiar');
+                return;
+            }
+        } catch (error) {
+            console.error('Error verificando historial:', error);
+            this.showError('Error verificando historial');
             return;
         }
+
+        // Confirmación con mensaje más descriptivo
+        const confirmMessage = `¿Estás seguro de que quieres eliminar TODAS las calaveritas del historial?\n\n⚠️ Esta acción NO se puede deshacer.\n\n✅ Presiona "Aceptar" para confirmar\n❌ Presiona "Cancelar" para mantener tu historial`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // Mostrar estado de carga en el botón
+        const originalText = this.clearHistoryBtn.textContent;
+        this.clearHistoryBtn.disabled = true;
+        this.clearHistoryBtn.textContent = '🗑️ Limpiando...';
+        this.clearHistoryBtn.classList.add('confirming');
 
         try {
             const response = await fetch('/api/history', {
@@ -388,82 +466,219 @@ class CalaveriteApp {
             const result = await response.json();
 
             if (response.ok && result.success) {
+                // Recargar historial automáticamente
                 await this.loadHistory();
-                this.showSuccessMessage('🗑️ Historial limpiado correctamente');
+                this.showSuccessMessage('🗑️ Historial limpiado correctamente. Todas las calaveritas han sido eliminadas.');
             } else {
-                this.showError(result.error || 'Error limpiando historial');
+                this.showError(result.error || 'Error limpiando historial. Por favor, intenta de nuevo.');
             }
         } catch (error) {
             console.error('Error limpiando historial:', error);
-            this.showError('Error de conexión. Por favor, intenta de nuevo.');
+            this.showError('Error de conexión. Verifica tu conexión a internet e intenta de nuevo.');
+        } finally {
+            // Restaurar estado del botón
+            this.clearHistoryBtn.disabled = false;
+            this.clearHistoryBtn.textContent = originalText;
+            this.clearHistoryBtn.classList.remove('confirming');
         }
     }
 
     /**
-     * Establece el estado de carga
+     * Establece el estado de carga con feedback visual mejorado
      */
     setLoadingState(loading) {
         this.isLoading = loading;
         
         if (loading) {
+            // Estado de carga
             this.generateBtn.disabled = true;
-            this.generateBtn.textContent = '🎭 Generando...';
+            this.generateBtn.innerHTML = '🎭 Generando<span class="loading-dots">...</span>';
             this.generateBtn.classList.add('loading');
+            
+            // Deshabilitar campos del formulario durante la carga
+            this.nameInput.disabled = true;
+            this.professionInput.disabled = true;
+            this.templateSelect.disabled = true;
+            this.traitInput.disabled = true;
+            
+            // Agregar efecto de carga visual
+            this.form.classList.add('loading-shimmer');
+            
         } else {
+            // Estado normal
             this.generateBtn.disabled = false;
-            this.generateBtn.textContent = '✨ Generar Calaverita';
+            this.generateBtn.innerHTML = '✨ Generar Calaverita';
             this.generateBtn.classList.remove('loading');
+            
+            // Rehabilitar campos del formulario
+            this.nameInput.disabled = false;
+            this.professionInput.disabled = false;
+            this.templateSelect.disabled = false;
+            this.traitInput.disabled = false;
+            
+            // Remover efecto de carga
+            this.form.classList.remove('loading-shimmer');
         }
     }
 
     /**
-     * Muestra un mensaje de error
+     * Muestra un mensaje de error con animaciones
      */
     showError(message) {
-        this.errorMessage.textContent = `❌ ${message}`;
+        this.errorMessage.innerHTML = `
+            <div class="error-icon">❌</div>
+            <div class="error-text">${this.escapeHtml(message)}</div>
+        `;
+        
+        // Mostrar con animación
         this.errorMessage.style.display = 'block';
-        this.errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        this.errorMessage.classList.remove('smooth-hide');
+        this.errorMessage.classList.add('smooth-show', 'slide-in-right');
+        
+        // Scroll suave al error
+        setTimeout(() => {
+            this.errorMessage.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest',
+                inline: 'center'
+            });
+        }, 100);
+        
+        // Auto-ocultar después de 5 segundos
+        setTimeout(() => {
+            this.hideError();
+        }, 5000);
     }
 
     /**
-     * Oculta el mensaje de error
+     * Oculta el mensaje de error con animación
      */
     hideError() {
-        this.errorMessage.style.display = 'none';
+        if (this.errorMessage.style.display !== 'none') {
+            this.errorMessage.classList.remove('smooth-show', 'slide-in-right');
+            this.errorMessage.classList.add('smooth-hide');
+            
+            setTimeout(() => {
+                this.errorMessage.style.display = 'none';
+                this.errorMessage.classList.remove('smooth-hide');
+            }, 300);
+        }
     }
 
     /**
-     * Muestra un mensaje de éxito
+     * Muestra un mensaje de éxito con mejor diseño
      */
     showSuccessMessage(message) {
         // Crear elemento temporal para mostrar mensaje de éxito
         const successDiv = document.createElement('div');
         successDiv.className = 'success-message';
-        successDiv.textContent = message;
+        successDiv.innerHTML = `
+            <div class="success-icon">✅</div>
+            <div class="success-text">${this.escapeHtml(message)}</div>
+        `;
         successDiv.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #16a34a;
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
             color: white;
             padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(22, 163, 74, 0.3);
             z-index: 1000;
-            animation: slideIn 0.3s ease-out;
+            animation: slideIn 0.4s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            max-width: 400px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
         `;
+
+        // Estilos para el icono y texto
+        const style = document.createElement('style');
+        style.textContent = `
+            .success-message .success-icon {
+                font-size: 1.25rem;
+                flex-shrink: 0;
+            }
+            .success-message .success-text {
+                font-weight: 500;
+                line-height: 1.4;
+            }
+        `;
+        document.head.appendChild(style);
 
         document.body.appendChild(successDiv);
 
-        // Remover después de 3 segundos
+        // Remover después de 4 segundos (más tiempo para leer)
         setTimeout(() => {
-            successDiv.style.animation = 'slideOut 0.3s ease-in';
+            successDiv.style.animation = 'slideOut 0.4s ease-in';
             setTimeout(() => {
                 if (successDiv.parentNode) {
                     successDiv.parentNode.removeChild(successDiv);
                 }
-            }, 300);
-        }, 3000);
+                if (style.parentNode) {
+                    style.parentNode.removeChild(style);
+                }
+            }, 400);
+        }, 4000);
+    }
+
+    /**
+     * Sistema de alertas tipo toast mejorable
+     */
+    showToast(message, type = 'info', duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        
+        const colors = {
+            success: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
+            error: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            warning: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+            info: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
+        };
+        
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type] || icons.info}</div>
+            <div class="toast-text">${this.escapeHtml(message)}</div>
+        `;
+        
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${colors[type] || colors.info};
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            animation: slideIn 0.4s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            max-width: 400px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            font-weight: 500;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.4s ease-in';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 400);
+        }, duration);
     }
 
     /**
