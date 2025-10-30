@@ -198,6 +198,61 @@ app.post('/api/validation/field', (req, res) => {
   }
 });
 
+app.post('/api/validation/contextual', (req, res) => {
+  try {
+    const { name, profession, trait, templateId } = req.body;
+    
+    // Validación completa contextual
+    const validation = validator.validateInput({ name, profession, trait, templateId });
+    
+    // Validaciones adicionales específicas por plantilla
+    let contextualMessages = [];
+    
+    if (templateId) {
+      const template = generator.getTemplates().find(t => t.id === templateId);
+      if (template) {
+        // Validaciones específicas por tipo de plantilla
+        if (templateId === 'clasica' || templateId === 'respetado') {
+          if (!trait) {
+            contextualMessages.push('Esta plantilla funciona mejor con una característica especial que destaque a la persona');
+          } else if (trait) {
+            const traitValidation = validator.validateTraitType(trait, 'positive');
+            if (traitValidation.warnings && traitValidation.warnings.length > 0) {
+              contextualMessages.push(...traitValidation.warnings);
+            }
+          }
+        }
+        
+        if (templateId === 'trabajador') {
+          if (profession && trait && trait.toLowerCase().includes('trabajador')) {
+            contextualMessages.push('Sugerencia: Evita repetir "trabajador" en la característica, ya que esta plantilla ya celebra el trabajo');
+          }
+        }
+        
+        if (templateId === 'catrina') {
+          contextualMessages.push('La plantilla Catrina es elegante y funciona bien con cualquier profesión');
+        }
+      }
+    }
+
+    res.json({ 
+      success: true,
+      data: {
+        ...validation,
+        contextualMessages: contextualMessages,
+        templateSpecific: templateId ? true : false
+      },
+      message: 'Validación contextual completada'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error en validación contextual'
+    });
+  }
+});
+
 // Servir la aplicación web
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

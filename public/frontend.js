@@ -214,16 +214,28 @@ class CalaveriteApp {
         if (!selectedTemplateId) {
             // Aleatorio seleccionado
             this.setTraitFieldOptional();
-            return;
+        } else {
+            const selectedTemplate = this.templates.find(t => t.id === selectedTemplateId);
+            if (selectedTemplate) {
+                if (selectedTemplate.requiresTrait) {
+                    this.setTraitFieldRequired();
+                } else {
+                    this.setTraitFieldOptional();
+                }
+            }
         }
 
-        const selectedTemplate = this.templates.find(t => t.id === selectedTemplateId);
-        if (selectedTemplate) {
-            if (selectedTemplate.requiresTrait) {
-                this.setTraitFieldRequired();
-            } else {
-                this.setTraitFieldOptional();
-            }
+        // Ejecutar validación contextual si hay datos en el formulario
+        if (this.shouldRunContextualValidation()) {
+            setTimeout(() => {
+                this.runContextualValidation();
+            }, 100);
+        }
+
+        // Limpiar mensajes contextuales anteriores
+        const existingContextual = document.querySelector('.contextual-messages');
+        if (existingContextual) {
+            existingContextual.remove();
         }
     }
 
@@ -252,37 +264,71 @@ class CalaveriteApp {
      */
     getFormData() {
         return {
-            name: this.nameInput.value.trim(),
-            profession: this.professionInput.value.trim(),
-            trait: this.traitInput.value.trim() || null,
+            name: this.sanitizeInput(this.nameInput.value),
+            profession: this.sanitizeInput(this.professionInput.value),
+            trait: this.traitInput.value.trim() ? this.sanitizeInput(this.traitInput.value) : null,
             templateId: this.templateSelect.value || null
         };
+    }
+
+    /**
+     * Sanitiza entrada de datos
+     */
+    sanitizeInput(input) {
+        if (!input || typeof input !== 'string') return '';
+        
+        return input
+            .trim()                           // Eliminar espacios al inicio y final
+            .replace(/\s+/g, ' ')            // Normalizar espacios múltiples
+            .replace(/[<>]/g, '')            // Eliminar caracteres HTML básicos
+            .substring(0, 100);              // Limitar longitud máxima de seguridad
     }
 
     /**
      * Valida los datos del formulario
      */
     validateFormData(data) {
+        // Validación de nombre
         if (!data.name) {
-            this.showError('El nombre es requerido');
+            this.showError('📝 El nombre es requerido para crear tu calaverita');
+            this.nameInput.focus();
+            return false;
+        }
+        
+        if (data.name.length < 2) {
+            this.showError('📝 El nombre debe tener al menos 2 caracteres');
             this.nameInput.focus();
             return false;
         }
         
         if (data.name.length > 50) {
-            this.showError('El nombre no puede tener más de 50 caracteres');
+            this.showError('📝 El nombre no puede tener más de 50 caracteres');
+            this.nameInput.focus();
+            return false;
+        }
+
+        // Validar que el nombre no sea solo números
+        if (/^\d+$/.test(data.name)) {
+            this.showError('📝 El nombre no puede ser solo números');
             this.nameInput.focus();
             return false;
         }
         
+        // Validación de profesión
         if (!data.profession) {
-            this.showError('La profesión es requerida');
+            this.showError('💼 La profesión es requerida para crear tu calaverita');
             this.professionInput.focus();
             return false;
         }
         
-        if (data.profession.length > 50) {
-            this.showError('La profesión no puede tener más de 50 caracteres');
+        if (data.profession.length < 2) {
+            this.showError('💼 La profesión debe tener al menos 2 caracteres');
+            this.professionInput.focus();
+            return false;
+        }
+        
+        if (data.profession.length > 30) {
+            this.showError('💼 La profesión no puede tener más de 30 caracteres');
             this.professionInput.focus();
             return false;
         }
@@ -291,14 +337,44 @@ class CalaveriteApp {
         if (data.templateId) {
             const selectedTemplate = this.templates.find(t => t.id === data.templateId);
             if (selectedTemplate && selectedTemplate.requiresTrait && !data.trait) {
-                this.showError('Esta plantilla requiere una característica especial');
+                this.showError(`🎭 La plantilla "${selectedTemplate.name}" requiere una característica especial`);
                 this.traitInput.focus();
                 return false;
             }
         }
         
-        if (data.trait && data.trait.length > 50) {
-            this.showError('La característica no puede tener más de 50 caracteres');
+        // Validación de característica
+        if (data.trait) {
+            if (data.trait.length < 2) {
+                this.showError('✨ La característica debe tener al menos 2 caracteres');
+                this.traitInput.focus();
+                return false;
+            }
+            
+            if (data.trait.length > 25) {
+                this.showError('✨ La característica no puede tener más de 25 caracteres');
+                this.traitInput.focus();
+                return false;
+            }
+        }
+
+        // Validar caracteres especiales
+        const specialCharsRegex = /[<>{}[\]\\\/\|`~!@#$%^&*()+=]/;
+        
+        if (specialCharsRegex.test(data.name)) {
+            this.showError('📝 El nombre contiene caracteres especiales no permitidos');
+            this.nameInput.focus();
+            return false;
+        }
+        
+        if (specialCharsRegex.test(data.profession)) {
+            this.showError('💼 La profesión contiene caracteres especiales no permitidos');
+            this.professionInput.focus();
+            return false;
+        }
+        
+        if (data.trait && specialCharsRegex.test(data.trait)) {
+            this.showError('✨ La característica contiene caracteres especiales no permitidos');
             this.traitInput.focus();
             return false;
         }
@@ -317,17 +393,23 @@ class CalaveriteApp {
             clearTimeout(this.validationTimeouts[fieldName]);
         }
 
-        // Validación inmediata para longitud
+        // Validación inmediata para longitud y formato
         this.validateFieldLength(input, fieldName);
+        this.validateFieldFormat(input, fieldName);
 
         // Validación del servidor con debounce
         this.validationTimeouts[fieldName] = setTimeout(async () => {
             if (value.trim().length > 0) {
                 await this.validateFieldOnServer(fieldName, value, input);
+                
+                // Validación contextual si todos los campos tienen datos
+                if (this.shouldRunContextualValidation()) {
+                    await this.runContextualValidation();
+                }
             } else {
                 this.clearFieldValidation(input);
             }
-        }, 500); // 500ms de debounce
+        }, 300); // Reducido a 300ms para mejor responsividad
     }
 
     /**
@@ -351,11 +433,60 @@ class CalaveriteApp {
         // Validar longitud
         if (value.length > rule.maxLength) {
             this.showFieldError(input, feedback, `Máximo ${rule.maxLength} caracteres`);
+            return false;
         } else if (value.trim().length > 0 && value.trim().length < rule.minLength) {
             this.showFieldError(input, feedback, `Mínimo ${rule.minLength} caracteres`);
-        } else {
-            this.clearFieldValidation(input);
+            return false;
         }
+        
+        return true;
+    }
+
+    /**
+     * Validación inmediata de formato
+     */
+    validateFieldFormat(input, fieldName) {
+        const value = input.value.trim();
+        
+        if (value.length === 0) return true;
+
+        const container = input.parentElement;
+        let feedback = container.querySelector('.validation-message');
+        
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'validation-message';
+            container.appendChild(feedback);
+        }
+
+        // Validaciones específicas por campo
+        if (fieldName === 'name') {
+            // No permitir solo números
+            if (/^\d+$/.test(value)) {
+                this.showFieldError(input, feedback, 'El nombre no puede ser solo números');
+                return false;
+            }
+            
+            // Debe contener al menos una letra
+            if (!/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/.test(value)) {
+                this.showFieldError(input, feedback, 'El nombre debe contener al menos una letra');
+                return false;
+            }
+        }
+
+        // Validar caracteres especiales no permitidos
+        if (/[<>{}[\]\\\/\|`~!@#$%^&*()+=]/.test(value)) {
+            this.showFieldError(input, feedback, 'Contiene caracteres especiales no permitidos');
+            return false;
+        }
+
+        // Validar solo letras y espacios
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(value)) {
+            this.showFieldError(input, feedback, 'Solo se permiten letras y espacios');
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -377,6 +508,7 @@ class CalaveriteApp {
                 const validation = result.data;
                 const container = input.parentElement;
                 let feedback = container.querySelector('.validation-message');
+                let suggestionBox = container.querySelector('.suggestion-box');
                 
                 if (!feedback) {
                     feedback = document.createElement('div');
@@ -386,12 +518,72 @@ class CalaveriteApp {
 
                 if (validation.isValid) {
                     this.showFieldSuccess(input, feedback);
+                    
+                    // Mostrar sugerencias si las hay
+                    if (validation.suggestions && validation.suggestions.length > 0) {
+                        this.showFieldSuggestions(input, validation.suggestions);
+                    }
+                    
+                    // Mostrar advertencias si las hay
+                    if (validation.warning) {
+                        this.showFieldWarning(input, validation.warning);
+                    }
                 } else {
                     this.showFieldError(input, feedback, validation.message);
+                }
+                
+                // Limpiar sugerencias si hay errores
+                if (!validation.isValid && suggestionBox) {
+                    suggestionBox.remove();
                 }
             }
         } catch (error) {
             console.error('Error validando campo:', error);
+        }
+    }
+
+    /**
+     * Determina si debe ejecutar validación contextual
+     */
+    shouldRunContextualValidation() {
+        const name = this.nameInput.value.trim();
+        const profession = this.professionInput.value.trim();
+        const templateId = this.templateSelect.value;
+        
+        // Solo ejecutar si hay datos mínimos
+        return name.length > 0 && profession.length > 0;
+    }
+
+    /**
+     * Ejecuta validación contextual completa
+     */
+    async runContextualValidation() {
+        try {
+            const formData = this.getFormData();
+            
+            const response = await fetch('/api/validation/contextual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                const validation = result.data;
+                
+                // Mostrar mensajes contextuales
+                if (validation.contextualMessages && validation.contextualMessages.length > 0) {
+                    this.showContextualMessages(validation.contextualMessages);
+                }
+                
+                // Actualizar estado general del formulario
+                this.updateFormValidationState(validation);
+            }
+        } catch (error) {
+            console.error('Error en validación contextual:', error);
         }
     }
 
@@ -421,11 +613,117 @@ class CalaveriteApp {
      * Limpia validación de campo
      */
     clearFieldValidation(input) {
-        input.classList.remove('valid', 'invalid');
+        input.classList.remove('valid', 'invalid', 'warning');
         const container = input.parentElement;
         const feedback = container.querySelector('.validation-message');
+        const suggestionBox = container.querySelector('.suggestion-box');
+        const warningBox = container.querySelector('.warning-box');
+        
         if (feedback) {
             feedback.style.display = 'none';
+        }
+        if (suggestionBox) {
+            suggestionBox.remove();
+        }
+        if (warningBox) {
+            warningBox.remove();
+        }
+    }
+
+    /**
+     * Muestra sugerencias para el campo
+     */
+    showFieldSuggestions(input, suggestions) {
+        const container = input.parentElement;
+        let suggestionBox = container.querySelector('.suggestion-box');
+        
+        if (!suggestionBox) {
+            suggestionBox = document.createElement('div');
+            suggestionBox.className = 'suggestion-box';
+            container.appendChild(suggestionBox);
+        }
+
+        suggestionBox.innerHTML = suggestions.map(suggestion => 
+            `<div class="suggestion-item">💡 ${this.escapeHtml(suggestion)}</div>`
+        ).join('');
+        suggestionBox.style.display = 'block';
+    }
+
+    /**
+     * Muestra advertencia para el campo
+     */
+    showFieldWarning(input, warning) {
+        const container = input.parentElement;
+        let warningBox = container.querySelector('.warning-box');
+        
+        if (!warningBox) {
+            warningBox = document.createElement('div');
+            warningBox.className = 'warning-box';
+            container.appendChild(warningBox);
+        }
+
+        input.classList.add('warning');
+        warningBox.innerHTML = `<div class="warning-item">⚠️ ${this.escapeHtml(warning)}</div>`;
+        warningBox.style.display = 'block';
+    }
+
+    /**
+     * Muestra mensajes contextuales
+     */
+    showContextualMessages(messages) {
+        // Limpiar mensajes contextuales anteriores
+        const existingContextual = document.querySelector('.contextual-messages');
+        if (existingContextual) {
+            existingContextual.remove();
+        }
+
+        if (messages.length === 0) return;
+
+        const contextualDiv = document.createElement('div');
+        contextualDiv.className = 'contextual-messages';
+        contextualDiv.innerHTML = `
+            <div class="contextual-header">
+                <span class="contextual-icon">🎭</span>
+                <span class="contextual-title">Sugerencias para tu calaverita:</span>
+            </div>
+            <div class="contextual-content">
+                ${messages.map(msg => `
+                    <div class="contextual-item">
+                        ${msg.startsWith('Sugerencia:') ? '💡' : 'ℹ️'} ${this.escapeHtml(msg)}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Insertar después del formulario
+        this.form.parentNode.insertBefore(contextualDiv, this.form.nextSibling);
+
+        // Auto-ocultar después de 8 segundos
+        setTimeout(() => {
+            if (contextualDiv.parentNode) {
+                contextualDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (contextualDiv.parentNode) {
+                        contextualDiv.remove();
+                    }
+                }, 300);
+            }
+        }, 8000);
+    }
+
+    /**
+     * Actualiza el estado general de validación del formulario
+     */
+    updateFormValidationState(validation) {
+        const isFormValid = validation.isValid;
+        
+        // Actualizar estado del botón de generar
+        if (isFormValid) {
+            this.generateBtn.classList.remove('form-invalid');
+            this.generateBtn.classList.add('form-valid');
+        } else {
+            this.generateBtn.classList.remove('form-valid');
+            this.generateBtn.classList.add('form-invalid');
         }
     }
 

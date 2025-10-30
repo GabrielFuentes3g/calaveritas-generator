@@ -81,22 +81,23 @@ class CalaveriteValidator {
   // Validar campo individual
   validateField(fieldName, value, required = false) {
     const errors = [];
+    const warnings = [];
     const config = this.config[fieldName];
 
     if (!config) {
       errors.push(`Campo '${fieldName}' no reconocido`);
-      return { isValid: false, errors };
+      return { isValid: false, errors, warnings };
     }
 
     // Verificar si es requerido
     if (required && (!value || value.trim().length === 0)) {
       errors.push(`${this.getFieldDisplayName(fieldName)} es requerido`);
-      return { isValid: false, errors };
+      return { isValid: false, errors, warnings };
     }
 
     // Si no es requerido y está vacío, es válido
     if (!required && (!value || value.trim().length === 0)) {
-      return { isValid: true, errors: [] };
+      return { isValid: true, errors: [], warnings: [] };
     }
 
     const trimmedValue = value.trim();
@@ -129,9 +130,60 @@ class CalaveriteValidator {
       errors.push(`${this.getFieldDisplayName(fieldName)} contiene palabras no apropiadas`);
     }
 
+    // Validaciones específicas por campo
+    if (fieldName === 'name') {
+      // Validar que no sea solo números
+      if (/^\d+$/.test(trimmedValue)) {
+        errors.push('El nombre no puede ser solo números');
+      }
+      
+      // Validar que tenga al menos una letra
+      if (!/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/.test(trimmedValue)) {
+        errors.push('El nombre debe contener al menos una letra');
+      }
+      
+      // Sugerir formato apropiado
+      if (trimmedValue.length > 0 && trimmedValue === trimmedValue.toLowerCase()) {
+        warnings.push('Sugerencia: Los nombres suelen escribirse con la primera letra mayúscula');
+      }
+    }
+
+    if (fieldName === 'profession') {
+      // Validar profesiones comunes
+      const commonProfessions = [
+        'doctor', 'doctora', 'médico', 'médica', 'enfermero', 'enfermera',
+        'maestro', 'maestra', 'profesor', 'profesora', 'ingeniero', 'ingeniera',
+        'abogado', 'abogada', 'contador', 'contadora', 'programador', 'programadora',
+        'chef', 'cocinero', 'cocinera', 'artista', 'músico', 'música',
+        'escritor', 'escritora', 'periodista', 'arquitecto', 'arquitecta',
+        'policía', 'bombero', 'bombera', 'soldado', 'militar'
+      ];
+      
+      const isCommonProfession = commonProfessions.some(prof => 
+        trimmedValue.toLowerCase().includes(prof.toLowerCase())
+      );
+      
+      if (!isCommonProfession && trimmedValue.length > 0) {
+        warnings.push('Sugerencia: Usa profesiones reconocibles como "doctor", "maestra", "ingeniero", etc.');
+      }
+    }
+
+    if (fieldName === 'trait') {
+      // Validar que no sea redundante con profesión
+      const redundantTraits = ['profesional', 'trabajador', 'laboral'];
+      const hasRedundantTrait = redundantTraits.some(trait => 
+        trimmedValue.toLowerCase().includes(trait.toLowerCase())
+      );
+      
+      if (hasRedundantTrait) {
+        warnings.push('Sugerencia: Evita características redundantes. Mejor usa cualidades personales como "alegre", "generoso", "inteligente"');
+      }
+    }
+
     return {
       isValid: errors.length === 0,
-      errors: errors
+      errors: errors,
+      warnings: warnings
     };
   }
 
@@ -173,22 +225,38 @@ class CalaveriteValidator {
       const positiveTraits = [
         'alegre', 'trabajador', 'amable', 'generoso', 'inteligente', 
         'valiente', 'honesto', 'creativo', 'divertido', 'carismático',
-        'responsable', 'leal', 'optimista', 'paciente', 'humilde'
+        'responsable', 'leal', 'optimista', 'paciente', 'humilde',
+        'bondadoso', 'sabio', 'gracioso', 'talentoso', 'dedicado',
+        'servicial', 'noble', 'cariñoso', 'entusiasta', 'perseverante'
       ];
+      
+      const negativeTraits = [
+        'malo', 'cruel', 'egoísta', 'perezoso', 'mentiroso',
+        'agresivo', 'violento', 'odioso', 'malvado', 'despreciable'
+      ];
+      
+      const hasNegativeTrait = negativeTraits.some(negative => 
+        trait.toLowerCase().includes(negative.toLowerCase())
+      );
+      
+      if (hasNegativeTrait) {
+        errors.push('Las calaveritas tradicionales celebran las cualidades positivas de las personas');
+      }
       
       const isPositive = positiveTraits.some(positive => 
         trait.toLowerCase().includes(positive.toLowerCase())
       );
       
-      if (!isPositive) {
-        // No es error crítico, solo sugerencia
-        // errors.push('Se recomienda usar una característica positiva para esta plantilla');
+      if (!isPositive && !hasNegativeTrait) {
+        // Sugerencia suave, no error crítico
+        errors.push('Sugerencia: Las plantillas clásicas funcionan mejor con características positivas como "alegre", "trabajador" o "generoso"');
       }
     }
 
     return {
       isValid: errors.length === 0,
-      errors: errors
+      errors: errors,
+      warnings: errors.filter(e => e.startsWith('Sugerencia:'))
     };
   }
 
@@ -241,8 +309,63 @@ class CalaveriteValidator {
     const validation = this.validateField(fieldName, value, false);
     return {
       isValid: validation.isValid,
-      message: validation.errors.length > 0 ? validation.errors[0] : null
+      message: validation.errors.length > 0 ? validation.errors[0] : null,
+      warning: validation.warnings && validation.warnings.length > 0 ? validation.warnings[0] : null,
+      suggestions: this.getFieldSuggestions(fieldName, value)
     };
+  }
+
+  // Obtener sugerencias contextuales para un campo
+  getFieldSuggestions(fieldName, value) {
+    const suggestions = [];
+    
+    if (!value || value.trim().length === 0) {
+      return suggestions;
+    }
+
+    const trimmedValue = value.trim().toLowerCase();
+
+    if (fieldName === 'name') {
+      if (trimmedValue.length < 3) {
+        suggestions.push('Los nombres completos funcionan mejor para las calaveritas');
+      }
+    }
+
+    if (fieldName === 'profession') {
+      const professionSuggestions = {
+        'doc': ['doctor', 'doctora'],
+        'med': ['médico', 'médica'],
+        'prof': ['profesor', 'profesora'],
+        'maest': ['maestro', 'maestra'],
+        'ing': ['ingeniero', 'ingeniera'],
+        'prog': ['programador', 'programadora'],
+        'abog': ['abogado', 'abogada']
+      };
+
+      Object.keys(professionSuggestions).forEach(key => {
+        if (trimmedValue.includes(key) && !professionSuggestions[key].some(s => trimmedValue.includes(s))) {
+          suggestions.push(`¿Quisiste decir "${professionSuggestions[key][0]}" o "${professionSuggestions[key][1]}"?`);
+        }
+      });
+    }
+
+    if (fieldName === 'trait') {
+      const traitSuggestions = {
+        'feli': ['alegre', 'feliz'],
+        'buen': ['bueno', 'bondadoso'],
+        'intel': ['inteligente', 'sabio'],
+        'diver': ['divertido', 'gracioso'],
+        'trab': ['trabajador', 'dedicado']
+      };
+
+      Object.keys(traitSuggestions).forEach(key => {
+        if (trimmedValue.includes(key) && !traitSuggestions[key].some(s => trimmedValue.includes(s))) {
+          suggestions.push(`Sugerencia: "${traitSuggestions[key][0]}" o "${traitSuggestions[key][1]}"`);
+        }
+      });
+    }
+
+    return suggestions.slice(0, 2); // Máximo 2 sugerencias
   }
 
   // Obtener reglas de validación para el frontend
