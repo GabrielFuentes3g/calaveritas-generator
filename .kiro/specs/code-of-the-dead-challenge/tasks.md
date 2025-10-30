@@ -15,10 +15,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
   - [x] 1.1 Inicializar package.json con dependencias completas
 
 
     - Crear package.json con name: "calaveritas-generator"
+
+
 
 
     - Agregar dependencias: express@^4.18.2, cors@^2.8.5
