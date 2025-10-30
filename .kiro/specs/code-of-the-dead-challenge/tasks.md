@@ -180,9 +180,14 @@
     - Implementar validación en tiempo real en formulario
     - _Requirements: 5.5_
 
-- [ ] 8. Agregar funcionalidades de exportación y búsqueda
+- [-] 8. Agregar funcionalidades de exportación y búsqueda
+
+
+
 
   - [ ] 8.1 Implementar exportación de datos
+
+
 
     - Crear endpoint POST /api/export para generar archivos
     - Implementar exportación JSON de historial completo
@@ -191,6 +196,10 @@
     - _Requirements: 2.3_
 
   - [ ] 8.2 Agregar búsqueda y filtrado básico
+
+
+
+
     - Crear endpoint GET /api/history/search con parámetros query
     - Implementar búsqueda por nombre, profesión o contenido
     - Agregar campo de búsqueda en sección historial

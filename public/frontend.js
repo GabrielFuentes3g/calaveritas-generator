@@ -8,6 +8,10 @@ class CalaveriteApp {
         this.form = document.getElementById('calaverita-form');
         this.generateBtn = document.getElementById('btn-generate');
         this.clearHistoryBtn = document.getElementById('btn-clear-history');
+        this.exportBtn = document.getElementById('btn-export-history');
+        this.searchInput = document.getElementById('search-input');
+        this.searchClearBtn = document.getElementById('btn-search-clear');
+        this.searchResultsInfo = document.getElementById('search-results-info');
         this.errorMessage = document.getElementById('error-message');
         this.resultSection = document.getElementById('result-section');
         this.calaveriteResult = document.getElementById('calaverita-result');
@@ -29,6 +33,9 @@ class CalaveriteApp {
         this.templates = [];
         this.validationRules = null;
         this.validationTimeouts = {};
+        this.currentSearchTerm = '';
+        this.allHistory = [];
+        this.filteredHistory = [];
         
         this.init();
     }
@@ -53,6 +60,20 @@ class CalaveriteApp {
         
         // Botón de limpiar historial
         this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+        
+        // Botón de exportar historial
+        this.exportBtn.addEventListener('click', () => this.exportHistory());
+        
+        // Campo de búsqueda
+        this.searchInput.addEventListener('input', () => this.handleSearchInput());
+        this.searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.performSearch();
+            }
+        });
+        
+        // Botón de limpiar búsqueda
+        this.searchClearBtn.addEventListener('click', () => this.clearSearch());
         
         // Selector de plantillas
         this.templateSelect.addEventListener('change', () => this.handleTemplateChange());
@@ -809,7 +830,10 @@ class CalaveriteApp {
             const result = await response.json();
             
             if (result.success) {
-                this.displayHistory(result.data);
+                this.allHistory = result.data;
+                this.filteredHistory = [...this.allHistory];
+                this.displayHistory(this.filteredHistory);
+                this.updateSearchResultsInfo();
             } else {
                 console.error('Error cargando historial:', result.error);
                 this.showEmptyHistory();
@@ -1185,6 +1209,154 @@ class CalaveriteApp {
                 }
             }, 400);
         }, duration);
+    }
+
+    /**
+     * Exporta el historial completo
+     */
+    async exportHistory() {
+        // Verificar si hay historial para exportar
+        if (!this.allHistory || this.allHistory.length === 0) {
+            this.showError('No hay calaveritas en el historial para exportar');
+            return;
+        }
+
+        // Mostrar estado de carga en el botón
+        const originalText = this.exportBtn.textContent;
+        this.exportBtn.disabled = true;
+        this.exportBtn.textContent = '📥 Exportando...';
+        this.exportBtn.classList.add('loading');
+
+        try {
+            const response = await fetch('/api/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                // Crear y descargar archivo
+                const dataStr = JSON.stringify(result.data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                // Crear enlace de descarga
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(dataBlob);
+                downloadLink.download = result.filename;
+                downloadLink.style.display = 'none';
+                
+                // Agregar al DOM, hacer clic y remover
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // Limpiar URL del blob
+                URL.revokeObjectURL(downloadLink.href);
+                
+                this.showSuccessMessage(`📥 Historial exportado exitosamente como "${result.filename}". El archivo se ha descargado automáticamente.`);
+            } else {
+                this.showError(result.error || 'Error exportando historial. Por favor, intenta de nuevo.');
+            }
+        } catch (error) {
+            console.error('Error exportando historial:', error);
+            this.showError('Error de conexión. Verifica tu conexión a internet e intenta de nuevo.');
+        } finally {
+            // Restaurar estado del botón
+            this.exportBtn.disabled = false;
+            this.exportBtn.textContent = originalText;
+            this.exportBtn.classList.remove('loading');
+        }
+    }
+
+    /**
+     * Maneja la entrada de texto en el campo de búsqueda
+     */
+    handleSearchInput() {
+        const searchTerm = this.searchInput.value.trim();
+        
+        // Mostrar/ocultar botón de limpiar búsqueda
+        if (searchTerm.length > 0) {
+            this.searchClearBtn.style.display = 'inline-block';
+        } else {
+            this.searchClearBtn.style.display = 'none';
+        }
+        
+        // Búsqueda en tiempo real con debounce
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            this.performSearch();
+        }, 300);
+    }
+
+    /**
+     * Realiza la búsqueda en el historial
+     */
+    async performSearch() {
+        const searchTerm = this.searchInput.value.trim();
+        
+        if (searchTerm.length === 0) {
+            // Mostrar todo el historial si no hay término de búsqueda
+            this.filteredHistory = [...this.allHistory];
+            this.currentSearchTerm = '';
+            this.displayHistory(this.filteredHistory);
+            this.updateSearchResultsInfo();
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/history/search?query=${encodeURIComponent(searchTerm)}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                this.filteredHistory = result.data;
+                this.currentSearchTerm = searchTerm;
+                this.displayHistory(this.filteredHistory);
+                this.updateSearchResultsInfo(result.totalResults, result.totalHistory);
+            } else {
+                console.error('Error en búsqueda:', result.error);
+                this.showError('Error realizando búsqueda: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error en búsqueda:', error);
+            this.showError('Error de conexión durante la búsqueda');
+        }
+    }
+
+    /**
+     * Limpia la búsqueda y muestra todo el historial
+     */
+    clearSearch() {
+        this.searchInput.value = '';
+        this.searchClearBtn.style.display = 'none';
+        this.currentSearchTerm = '';
+        this.filteredHistory = [...this.allHistory];
+        this.displayHistory(this.filteredHistory);
+        this.updateSearchResultsInfo();
+    }
+
+    /**
+     * Actualiza la información de resultados de búsqueda
+     */
+    updateSearchResultsInfo(searchResults = null, totalHistory = null) {
+        if (this.currentSearchTerm.length === 0) {
+            // No hay búsqueda activa
+            this.searchResultsInfo.style.display = 'none';
+            return;
+        }
+
+        const results = searchResults !== null ? searchResults : this.filteredHistory.length;
+        const total = totalHistory !== null ? totalHistory : this.allHistory.length;
+        
+        this.searchResultsInfo.style.display = 'block';
+        this.searchResultsInfo.innerHTML = `
+            <div class="search-results-text">
+                🔍 Búsqueda: "<strong>${this.escapeHtml(this.currentSearchTerm)}</strong>" - 
+                ${results} de ${total} calaveritas encontradas
+            </div>
+        `;
     }
 
     /**

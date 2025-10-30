@@ -112,6 +112,55 @@ app.get('/api/history', (req, res) => {
   }
 });
 
+app.get('/api/history/search', (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parámetro query es requerido',
+        message: 'Bad Request: Falta el término de búsqueda'
+      });
+    }
+    
+    const history = dataManager.getHistory();
+    const searchTerm = query.toLowerCase().trim();
+    
+    // Buscar en nombre, profesión y contenido de la calaverita
+    const filteredHistory = history.filter(calaverita => {
+      const name = (calaverita.name || '').toLowerCase();
+      const profession = (calaverita.profession || '').toLowerCase();
+      const text = (calaverita.text || '').toLowerCase();
+      const trait = (calaverita.trait || '').toLowerCase();
+      const templateName = (calaverita.templateName || '').toLowerCase();
+      
+      return name.includes(searchTerm) || 
+             profession.includes(searchTerm) || 
+             text.includes(searchTerm) ||
+             trait.includes(searchTerm) ||
+             templateName.includes(searchTerm);
+    });
+    
+    res.json({
+      success: true,
+      data: filteredHistory,
+      searchTerm: query,
+      totalResults: filteredHistory.length,
+      totalHistory: history.length,
+      message: `Búsqueda completada: ${filteredHistory.length} resultado(s) encontrado(s)`
+    });
+    
+  } catch (error) {
+    console.error('Error en búsqueda:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error realizando búsqueda'
+    });
+  }
+});
+
 app.delete('/api/history', (req, res) => {
   try {
     const cleared = dataManager.clearHistory();
@@ -249,6 +298,51 @@ app.post('/api/validation/contextual', (req, res) => {
       success: false,
       error: error.message,
       message: 'Server Error: Error en validación contextual'
+    });
+  }
+});
+
+app.post('/api/export', (req, res) => {
+  try {
+    const history = dataManager.getHistory();
+    const stats = dataManager.getHistoryStats();
+    
+    // Crear datos de exportación con metadatos
+    const exportData = {
+      exportInfo: {
+        exportDate: new Date().toISOString(),
+        totalCalaveritas: history.length,
+        generatorVersion: '2.0',
+        exportFormat: 'JSON'
+      },
+      statistics: stats,
+      calaveritas: history
+    };
+    
+    // Generar nombre de archivo con fecha
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+    const filename = `calaveritas-historial-${dateStr}-${timeStr}.json`;
+    
+    // Configurar headers para descarga
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    res.json({
+      success: true,
+      data: exportData,
+      filename: filename,
+      message: 'Historial exportado exitosamente'
+    });
+    
+  } catch (error) {
+    console.error('Error exportando historial:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo exportar el historial'
     });
   }
 });

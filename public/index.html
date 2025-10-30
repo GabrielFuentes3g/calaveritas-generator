@@ -90,9 +90,34 @@
         <section class="history-section" aria-labelledby="history-title">
             <div class="history-header">
                 <h2 id="history-title">📚 Historial de Calaveritas</h2>
-                <button type="button" class="btn-clear" id="btn-clear-history">
-                    🗑️ Limpiar Historial
-                </button>
+                <div class="history-actions">
+                    <button type="button" class="btn-export" id="btn-export-history">
+                        📥 Exportar Historial
+                    </button>
+                    <button type="button" class="btn-clear" id="btn-clear-history">
+                        🗑️ Limpiar Historial
+                    </button>
+                </div>
+            </div>
+            
+            <div class="search-section">
+                <div class="search-group">
+                    <label for="search-input">🔍 Buscar en historial:</label>
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        name="search" 
+                        placeholder="Buscar por nombre, profesión o contenido..."
+                        aria-describedby="search-help"
+                    >
+                    <button type="button" class="btn-search-clear" id="btn-search-clear" style="display: none;">
+                        ❌ Limpiar
+                    </button>
+                </div>
+                <small id="search-help" class="help-text">Busca en nombres, profesiones, características y contenido de las calaveritas</small>
+                <div class="search-results-info" id="search-results-info" style="display: none;">
+                    <!-- Información de resultados de búsqueda -->
+                </div>
             </div>
             
             <div class="history-container" id="history-container">
