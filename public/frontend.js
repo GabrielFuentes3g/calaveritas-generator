@@ -1,104 +1,148 @@
+/**
+ * CalaveriteApp - Aplicación frontend para el Generador de Calaveritas
+ * Code of the Dead Challenge - JSConf MX 2025
+ */
 class CalaveriteApp {
     constructor() {
-        this.form = document.getElementById('calaveriteForm');
-        this.resultContainer = document.getElementById('resultContainer');
-        this.calaveriteDisplay = document.getElementById('calaveriteDisplay');
-        this.historyContainer = document.getElementById('historyContainer');
-        this.templateSelect = document.getElementById('template');
+        // Referencias a elementos del DOM
+        this.form = document.getElementById('calaverita-form');
+        this.generateBtn = document.getElementById('btn-generate');
+        this.clearHistoryBtn = document.getElementById('btn-clear-history');
+        this.errorMessage = document.getElementById('error-message');
+        this.resultSection = document.getElementById('result-section');
+        this.calaveriteResult = document.getElementById('calaverita-result');
+        this.historyContainer = document.getElementById('history-container');
+        this.historyList = document.getElementById('history-list');
+        this.emptyHistory = document.getElementById('empty-history');
+        
+        // Referencias a campos del formulario
+        this.nameInput = document.getElementById('nombre');
+        this.professionInput = document.getElementById('profesion');
+        this.traitInput = document.getElementById('caracteristica');
+        
+        // Estado de la aplicación
+        this.isLoading = false;
         
         this.init();
     }
 
+    /**
+     * Inicializa la aplicación
+     */
     async init() {
         this.setupEventListeners();
-        await this.loadTemplates();
         await this.loadHistory();
+        this.hideError();
     }
 
+    /**
+     * Configura los event listeners
+     */
     setupEventListeners() {
+        // Manejo del formulario
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         
-        document.getElementById('newCalaveriteBtn').addEventListener('click', () => {
-            this.resetForm();
-        });
+        // Botón de limpiar historial
+        this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
         
-        document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-            this.clearHistory();
-        });
-
-        // Mostrar/ocultar campo de característica según template seleccionado
-        this.templateSelect.addEventListener('change', (e) => {
-            this.handleTemplateChange(e.target.value);
-        });
-    }
-
-    async loadTemplates() {
-        try {
-            const response = await fetch('/api/templates');
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    this.populateTemplateSelect(result.data);
-                }
-            }
-        } catch (error) {
-            console.error('Error cargando templates:', error);
-        }
-    }
-
-    populateTemplateSelect(templates) {
-        templates.forEach(template => {
-            const option = document.createElement('option');
-            option.value = template.id;
-            option.textContent = `${template.name}${template.requiresTrait ? ' (requiere característica)' : ''}`;
-            option.dataset.requiresTrait = template.requiresTrait;
-            this.templateSelect.appendChild(option);
-        });
-    }
-
-    handleTemplateChange(templateId) {
-        const traitInput = document.getElementById('trait');
-        const traitGroup = traitInput.closest('.form-group');
-        const selectedOption = this.templateSelect.querySelector(`option[value="${templateId}"]`);
+        // Validación en tiempo real
+        this.nameInput.addEventListener('input', () => this.validateField(this.nameInput));
+        this.professionInput.addEventListener('input', () => this.validateField(this.professionInput));
         
-        if (selectedOption && selectedOption.dataset.requiresTrait === 'true') {
-            traitGroup.style.display = 'block';
-            traitInput.required = true;
-            traitInput.placeholder = 'Requerido para esta plantilla';
-        } else {
-            traitGroup.style.display = 'block';
-            traitInput.required = false;
-            traitInput.placeholder = 'Ej: bondadoso, gracioso, trabajador';
-        }
+        // Limpiar errores al escribir
+        [this.nameInput, this.professionInput, this.traitInput].forEach(input => {
+            input.addEventListener('input', () => this.hideError());
+        });
     }
 
+    /**
+     * Maneja el envío del formulario
+     */
     async handleSubmit(e) {
         e.preventDefault();
         
-        const formData = new FormData(this.form);
-        const data = {
-            name: formData.get('name').trim(),
-            profession: formData.get('profession').trim(),
-            trait: formData.get('trait').trim() || null,
-            templateId: formData.get('template') || null
-        };
-
-        if (!data.name || !data.profession) {
-            this.showError('Por favor completa todos los campos requeridos');
+        if (this.isLoading) return;
+        
+        // Obtener y validar datos del formulario
+        const formData = this.getFormData();
+        if (!this.validateFormData(formData)) {
             return;
         }
 
-        await this.generateCalaverita(data);
+        await this.generateCalaverita(formData);
     }
 
+    /**
+     * Obtiene los datos del formulario
+     */
+    getFormData() {
+        return {
+            name: this.nameInput.value.trim(),
+            profession: this.professionInput.value.trim(),
+            trait: this.traitInput.value.trim() || null
+        };
+    }
+
+    /**
+     * Valida los datos del formulario
+     */
+    validateFormData(data) {
+        if (!data.name) {
+            this.showError('El nombre es requerido');
+            this.nameInput.focus();
+            return false;
+        }
+        
+        if (data.name.length > 50) {
+            this.showError('El nombre no puede tener más de 50 caracteres');
+            this.nameInput.focus();
+            return false;
+        }
+        
+        if (!data.profession) {
+            this.showError('La profesión es requerida');
+            this.professionInput.focus();
+            return false;
+        }
+        
+        if (data.profession.length > 50) {
+            this.showError('La profesión no puede tener más de 50 caracteres');
+            this.professionInput.focus();
+            return false;
+        }
+        
+        if (data.trait && data.trait.length > 50) {
+            this.showError('La característica no puede tener más de 50 caracteres');
+            this.traitInput.focus();
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Valida un campo individual
+     */
+    validateField(input) {
+        const value = input.value.trim();
+        const maxLength = parseInt(input.getAttribute('maxlength'));
+        
+        if (input.hasAttribute('required') && !value) {
+            input.setCustomValidity('Este campo es requerido');
+        } else if (value.length > maxLength) {
+            input.setCustomValidity(`Máximo ${maxLength} caracteres`);
+        } else {
+            input.setCustomValidity('');
+        }
+    }
+
+    /**
+     * Genera una nueva calaverita
+     */
     async generateCalaverita(data) {
-        const submitBtn = this.form.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
+        this.setLoadingState(true);
         
         try {
-            submitBtn.disabled = true;
-            submitBtn.textContent = '🎭 Generando...';
-
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: {
@@ -111,78 +155,127 @@ class CalaveriteApp {
 
             if (response.ok && result.success) {
                 this.displayCalaverita(result.data);
-                await this.loadHistory(); // Recargar historial
+                await this.loadHistory();
+                this.hideError();
             } else {
                 this.showError(result.error || 'Error generando calaverita');
             }
         } catch (error) {
-            this.showError('Error de conexión. Intenta de nuevo.');
-            console.error('Error:', error);
+            console.error('Error generando calaverita:', error);
+            this.showError('Error de conexión. Por favor, intenta de nuevo.');
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            this.setLoadingState(false);
         }
     }
 
+    /**
+     * Muestra la calaverita generada
+     */
     displayCalaverita(calaverita) {
-        this.calaveriteDisplay.textContent = calaverita.text;
-        this.resultContainer.style.display = 'block';
-        this.resultContainer.scrollIntoView({ behavior: 'smooth' });
+        this.calaveriteResult.textContent = calaverita.text;
+        this.resultSection.style.display = 'block';
+        this.resultSection.classList.add('fade-in');
+        
+        // Scroll suave al resultado
+        setTimeout(() => {
+            this.resultSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }, 100);
     }
 
-    resetForm() {
-        this.form.reset();
-        this.resultContainer.style.display = 'none';
-        this.handleTemplateChange(''); // Reset template requirements
-    }
-
+    /**
+     * Carga y muestra el historial
+     */
     async loadHistory() {
         try {
             const response = await fetch('/api/history');
             const result = await response.json();
+            
             if (result.success) {
                 this.displayHistory(result.data);
+            } else {
+                console.error('Error cargando historial:', result.error);
+                this.showEmptyHistory();
             }
         } catch (error) {
             console.error('Error cargando historial:', error);
-            this.historyContainer.innerHTML = '<p class="loading">Error cargando historial</p>';
+            this.showEmptyHistory();
         }
     }
 
+    /**
+     * Muestra el historial de calaveritas
+     */
     displayHistory(history) {
-        if (history.length === 0) {
-            this.historyContainer.innerHTML = `
-                <div class="empty-history">
-                    <span class="emoji">📭</span>
-                    <p>No hay calaveritas en el historial aún.</p>
-                    <p>¡Crea tu primera calaverita!</p>
-                </div>
-            `;
+        if (!history || history.length === 0) {
+            this.showEmptyHistory();
             return;
         }
 
-        const historyHTML = history
-            .reverse() // Mostrar más recientes primero
-            .map(calaverita => `
-                <div class="history-item">
+        // Ocultar mensaje de historial vacío
+        this.emptyHistory.style.display = 'none';
+        this.historyList.style.display = 'block';
+
+        // Ordenar por fecha (más recientes primero)
+        const sortedHistory = [...history].reverse();
+
+        // Generar HTML del historial
+        const historyHTML = sortedHistory.map(calaverita => {
+            const preview = this.getPreview(calaverita.text);
+            const templateInfo = calaverita.templateName ? ` (${calaverita.templateName})` : '';
+            
+            return `
+                <div class="history-item" data-id="${calaverita.id}">
                     <div class="history-item-header">
                         <span class="history-item-title">
-                            ${calaverita.name} - ${calaverita.profession}
+                            💀 ${calaverita.name} - ${calaverita.profession}${templateInfo}
                         </span>
                         <span class="history-item-date">${calaverita.date}</span>
                     </div>
                     <div class="history-item-preview">
-                        ${calaverita.text.split('\n')[0]}...
+                        ${preview}
                     </div>
                 </div>
-            `)
-            .join('');
+            `;
+        }).join('');
 
-        this.historyContainer.innerHTML = historyHTML;
+        this.historyList.innerHTML = historyHTML;
+
+        // Agregar event listeners para mostrar calaveritas completas
+        this.historyList.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const id = item.dataset.id;
+                const calaverita = history.find(c => c.id === id);
+                if (calaverita) {
+                    this.displayCalaverita(calaverita);
+                }
+            });
+        });
     }
 
+    /**
+     * Muestra el estado de historial vacío
+     */
+    showEmptyHistory() {
+        this.emptyHistory.style.display = 'block';
+        this.historyList.style.display = 'none';
+    }
+
+    /**
+     * Obtiene una vista previa del texto de la calaverita
+     */
+    getPreview(text) {
+        const firstLine = text.split('\n')[0];
+        return firstLine.length > 80 ? firstLine.substring(0, 80) + '...' : firstLine;
+    }
+
+    /**
+     * Limpia el historial
+     */
     async clearHistory() {
-        if (!confirm('¿Estás seguro de que quieres limpiar todo el historial?')) {
+        if (!confirm('¿Estás seguro de que quieres limpiar todo el historial? Esta acción no se puede deshacer.')) {
             return;
         }
 
@@ -191,28 +284,134 @@ class CalaveriteApp {
                 method: 'DELETE'
             });
 
-            if (response.ok) {
+            const result = await response.json();
+
+            if (response.ok && result.success) {
                 await this.loadHistory();
-                this.showSuccess('Historial limpiado correctamente');
+                this.showSuccessMessage('🗑️ Historial limpiado correctamente');
             } else {
-                this.showError('Error limpiando historial');
+                this.showError(result.error || 'Error limpiando historial');
             }
         } catch (error) {
-            this.showError('Error de conexión');
-            console.error('Error:', error);
+            console.error('Error limpiando historial:', error);
+            this.showError('Error de conexión. Por favor, intenta de nuevo.');
         }
     }
 
-    showError(message) {
-        // Simple alert por ahora, se puede mejorar con un toast
-        alert('❌ ' + message);
+    /**
+     * Establece el estado de carga
+     */
+    setLoadingState(loading) {
+        this.isLoading = loading;
+        
+        if (loading) {
+            this.generateBtn.disabled = true;
+            this.generateBtn.textContent = '🎭 Generando...';
+            this.generateBtn.classList.add('loading');
+        } else {
+            this.generateBtn.disabled = false;
+            this.generateBtn.textContent = '✨ Generar Calaverita';
+            this.generateBtn.classList.remove('loading');
+        }
     }
 
-    showSuccess(message) {
-        // Simple alert por ahora, se puede mejorar con un toast
-        alert('✅ ' + message);
+    /**
+     * Muestra un mensaje de error
+     */
+    showError(message) {
+        this.errorMessage.textContent = `❌ ${message}`;
+        this.errorMessage.style.display = 'block';
+        this.errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    /**
+     * Oculta el mensaje de error
+     */
+    hideError() {
+        this.errorMessage.style.display = 'none';
+    }
+
+    /**
+     * Muestra un mensaje de éxito
+     */
+    showSuccessMessage(message) {
+        // Crear elemento temporal para mostrar mensaje de éxito
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-message';
+        successDiv.textContent = message;
+        successDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #16a34a;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        `;
+
+        document.body.appendChild(successDiv);
+
+        // Remover después de 3 segundos
+        setTimeout(() => {
+            successDiv.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    /**
+     * Resetea el formulario
+     */
+    resetForm() {
+        this.form.reset();
+        this.resultSection.style.display = 'none';
+        this.hideError();
+        this.nameInput.focus();
     }
 }
+
+// Agregar estilos para animaciones de mensajes
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    .history-item {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .history-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+`;
+document.head.appendChild(style);
 
 // Inicializar la aplicación cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
