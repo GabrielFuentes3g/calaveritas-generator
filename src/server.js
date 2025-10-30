@@ -5,7 +5,7 @@ const { CalaveriteGenerator } = require('./generator');
 const { DataManager } = require('./data-manager');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -21,9 +21,12 @@ app.post('/api/generate', (req, res) => {
   try {
     const { name, profession, trait, templateId } = req.body;
     
+    // Validación de campos requeridos
     if (!name || !profession) {
       return res.status(400).json({ 
-        error: 'Nombre y profesión son requeridos' 
+        success: false,
+        error: 'Nombre y profesión son requeridos',
+        message: 'Bad Request: Faltan campos obligatorios'
       });
     }
 
@@ -34,30 +37,58 @@ app.post('/api/generate', (req, res) => {
     const saved = dataManager.saveCalaverita(calaverita);
     
     if (saved) {
-      res.json({ success: true, calaverita });
+      res.json({ 
+        success: true, 
+        data: calaverita,
+        message: 'Calaverita generada exitosamente'
+      });
     } else {
-      res.status(500).json({ error: 'Error guardando calaverita' });
+      res.status(500).json({ 
+        success: false,
+        error: 'Error guardando calaverita',
+        message: 'Server Error: No se pudo guardar la calaverita'
+      });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error interno del servidor'
+    });
   }
 });
 
 app.get('/api/templates', (req, res) => {
   try {
     const templates = generator.getTemplates();
-    res.json({ templates });
+    res.json({ 
+      success: true,
+      data: templates,
+      message: 'Plantillas obtenidas exitosamente'
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudieron obtener las plantillas'
+    });
   }
 });
 
 app.get('/api/history', (req, res) => {
   try {
     const history = dataManager.getHistory();
-    res.json({ history });
+    res.json({ 
+      success: true,
+      data: history,
+      message: 'Historial obtenido exitosamente'
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: No se pudo obtener el historial'
+    });
   }
 });
 
@@ -65,12 +96,24 @@ app.delete('/api/history', (req, res) => {
   try {
     const cleared = dataManager.clearHistory();
     if (cleared) {
-      res.json({ success: true, message: 'Historial limpiado' });
+      res.json({ 
+        success: true, 
+        data: null,
+        message: 'Historial limpiado exitosamente' 
+      });
     } else {
-      res.status(500).json({ error: 'Error limpiando historial' });
+      res.status(500).json({ 
+        success: false,
+        error: 'Error limpiando historial',
+        message: 'Server Error: No se pudo limpiar el historial'
+      });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      message: 'Server Error: Error interno del servidor'
+    });
   }
 });
 
@@ -80,6 +123,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🎭 Generador de Calaveritas ejecutándose en http://localhost:${PORT}`);
-  console.log('💀 ¡Abre tu navegador y comienza a crear calaveritas!');
+  console.log(`🎭 Generador ejecutándose en http://localhost:${PORT}`);
 });

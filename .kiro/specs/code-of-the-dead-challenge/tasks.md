@@ -40,12 +40,18 @@
     - _Requirements: 1.5, 4.4_
 
 
+
+
+
+
   
   - [ ] 1.2 Crear estructura de directorios profesional
     - Crear carpeta src/ para código backend (server.js, generator.js, data-manager.js)
     - Crear carpeta public/ para frontend (index.html, styles.css, frontend.js)
     - Crear carpeta data/ para persistencia local (auto-generada)
     - Configurar .gitignore: node_modules/, data/, *.log, .env, .DS_Store
+
+
     - _Requirements: 4.1, 4.3_
 
 - [ ] 2. Implementar generador core de calaveritas
@@ -74,8 +80,8 @@
     - Crear src/server.js con configuración Express completa
     - Implementar middleware: cors(), express.json(), express.static()
     - Configurar servicio de archivos estáticos desde public/
-    - Establecer puerto 3000 con variable de entorno opcional
-    - Agregar mensaje de inicio: "🎭 Generador ejecutándose en http://localhost:3000"
+    - Establecer puerto 8080 con variable de entorno opcional
+    - Agregar mensaje de inicio: "🎭 Generador ejecutándose en http://localhost:8080"
     - _Requirements: 1.1, 1.5_
   
   - [ ] 3.2 Implementar API REST completa con validaciones
@@ -295,7 +301,7 @@
 
 - [ ] 14. Verificar cumplimiento completo de Nivel Ofrenda
   - [ ] 14.1 Validar funcionalidad básica completa
-    - Verificar aplicación web ejecutándose correctamente en http://localhost:3000
+    - Verificar aplicación web ejecutándose correctamente en http://localhost:8080
     - Confirmar formulario funcional: campos nombre, profesión, característica
     - Validar generación de calaveritas con 3 plantillas mínimas
     - Verificar persistencia básica: guardado y carga de historial
@@ -372,7 +378,7 @@
 ## Checklist Final de Entrega
 
 ### ✅ Nivel Ofrenda (Básico) - Requisitos Mínimos
-- [ ] Aplicación web funcional en puerto 3000
+- [ ] Aplicación web funcional en puerto 8080
 - [ ] Diseño responsivo móvil/desktop
 - [ ] Formulario con validación básica
 - [ ] 3+ plantillas de calaveritas

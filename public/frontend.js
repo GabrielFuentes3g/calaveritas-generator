@@ -36,8 +36,10 @@ class CalaveriteApp {
         try {
             const response = await fetch('/api/templates');
             if (response.ok) {
-                const { templates } = await response.json();
-                this.populateTemplateSelect(templates);
+                const result = await response.json();
+                if (result.success) {
+                    this.populateTemplateSelect(result.data);
+                }
             }
         } catch (error) {
             console.error('Error cargando templates:', error);
@@ -107,8 +109,8 @@ class CalaveriteApp {
 
             const result = await response.json();
 
-            if (response.ok) {
-                this.displayCalaverita(result.calaverita);
+            if (response.ok && result.success) {
+                this.displayCalaverita(result.data);
                 await this.loadHistory(); // Recargar historial
             } else {
                 this.showError(result.error || 'Error generando calaverita');
@@ -137,8 +139,10 @@ class CalaveriteApp {
     async loadHistory() {
         try {
             const response = await fetch('/api/history');
-            const { history } = await response.json();
-            this.displayHistory(history);
+            const result = await response.json();
+            if (result.success) {
+                this.displayHistory(result.data);
+            }
         } catch (error) {
             console.error('Error cargando historial:', error);
             this.historyContainer.innerHTML = '<p class="loading">Error cargando historial</p>';
