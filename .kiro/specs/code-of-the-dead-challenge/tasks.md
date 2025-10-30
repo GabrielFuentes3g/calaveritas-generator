@@ -226,9 +226,15 @@
     - Documentar beneficios y casos de uso específicos
     - _Requirements: 3.1_
 
-- [ ] 10. Implementar Steering Rules automáticas
+- [x] 10. Implementar Steering Rules automáticas
 
-  - [ ] 10.1 Crear reglas de dirección completas
+
+
+
+
+  - [x] 10.1 Crear reglas de dirección completas
+
+
 
     - Crear .kiro/steering/calaverita-standards.md con estándares completos:
       - Métricas poéticas tradicionales (octosílabos, rima consonante)
@@ -239,7 +245,9 @@
     - Crear referencias a archivos externos con #[[file:...]]
     - _Requirements: 3.2, 3.5_
 
-  - [ ] 10.2 Aplicar steering en desarrollo automático
+  - [x] 10.2 Aplicar steering en desarrollo automático
+
+
     - Configurar aplicación automática de estándares en todas las sesiones
     - Implementar validación contextual cuando se editen plantillas
     - Crear guías específicas para diferentes tipos de archivos
