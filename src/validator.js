@@ -34,7 +34,10 @@ class CalaveriteValidator {
       'catrina': { requiresTrait: false },
       'trabajador': { requiresTrait: false },
       'respetado': { requiresTrait: true, traitType: 'positive' },
-      'montaña': { requiresTrait: false }
+      'festivo': { requiresTrait: true, traitType: 'positive' },
+      'poetico': { requiresTrait: true, traitType: 'positive' },
+      'humoristico': { requiresTrait: true, traitType: 'positive' },
+      'nostalgico': { requiresTrait: false }
     };
   }
 

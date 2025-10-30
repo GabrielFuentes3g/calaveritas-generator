@@ -8,9 +8,10 @@ class MCPIntegration {
     this.mcpEnabled = this.checkMCPAvailability();
     this.validationRules = {
       cultural: {
-        requiredElements: ['muerte', 'catrina', 'descansar', 'paz'],
+        requiredElements: ['muerte', 'catrina', 'descansar', 'descanses', 'paz', 'eternidad', 'baile', 'guadaña'],
+        culturalConcepts: ['flaca bonita', 'don', 'doña', 'querido', 'querida', 'respetado', 'respetada'],
         forbiddenElements: ['violencia', 'tristeza', 'dolor'],
-        toneKeywords: ['humor', 'gracia', 'tradición', 'respeto']
+        toneKeywords: ['humor', 'gracia', 'tradición', 'respeto', 'graciosa', 'diversión', 'celebración']
       },
       poetic: {
         minLines: 4,
@@ -158,34 +159,97 @@ class MCPIntegration {
    */
   simulateCulturalCheck(params) {
     const text = params.text.toLowerCase();
-    let score = 50;
+    let score = 70; // Base score for Mexican Day of the Dead context
     const suggestions = [];
 
-    // Check for cultural elements
-    this.validationRules.cultural.requiredElements.forEach(element => {
-      if (text.includes(element)) score += 10;
-    });
-
-    // Check for forbidden elements
-    this.validationRules.cultural.forbiddenElements.forEach(element => {
+    // Core Day of the Dead elements (high value)
+    const coreElements = {
+      'muerte': 8, 'catrina': 10, 'descansar': 6, 'descanses': 6, 'paz': 7,
+      'eternidad': 8, 'baile': 5, 'guadaña': 7, 'flaca bonita': 12
+    };
+    
+    Object.keys(coreElements).forEach(element => {
       if (text.includes(element)) {
-        score -= 20;
-        suggestions.push(`Evitar referencias a "${element}" para mantener el tono apropiado`);
+        score += coreElements[element];
       }
     });
 
-    // Check tone
-    const hasGoodTone = this.validationRules.cultural.toneKeywords.some(keyword => 
-      text.includes(keyword)
-    );
-    if (!hasGoodTone) {
-      suggestions.push('Agregar elementos de humor o respeto tradicional');
+    // Traditional respectful forms (cultural authenticity)
+    const respectfulForms = {
+      'don ': 8, 'doña ': 8, 'querido': 5, 'querida': 5, 
+      'respetado': 6, 'respetada': 6, 'admirado': 4, 'admirada': 4
+    };
+    
+    Object.keys(respectfulForms).forEach(form => {
+      if (text.includes(form)) {
+        score += respectfulForms[form];
+      }
+    });
+
+    // Traditional openings (structural authenticity)
+    const traditionalOpenings = {
+      'aquí yace': 10, 'había una vez': 8, 'en vida': 6,
+      'como flor que se marchita': 12
+    };
+    
+    Object.keys(traditionalOpenings).forEach(opening => {
+      if (text.includes(opening)) {
+        score += traditionalOpenings[opening];
+      }
+    });
+
+    // Tone and mood indicators
+    const toneIndicators = {
+      'graciosa': 8, 'diversión': 7, 'celebración': 9, 'humor': 6,
+      'bromista': 8, 'optimista': 6, 'traviesa': 5, 'gracia': 7
+    };
+    
+    Object.keys(toneIndicators).forEach(indicator => {
+      if (text.includes(indicator)) {
+        score += toneIndicators[indicator];
+      }
+    });
+
+    // Poetic endings (traditional closures)
+    const poeticEndings = {
+      'que en paz descanses': 10, 'descanse en paz': 8, 'ha partido': 6,
+      'que baile por la eternidad': 12, 'que descanse en la montaña': 8,
+      'que siga la celebración': 10, 'su recuerdo nos visita': 9
+    };
+    
+    Object.keys(poeticEndings).forEach(ending => {
+      if (text.includes(ending)) {
+        score += poeticEndings[ending];
+      }
+    });
+
+    // Check for forbidden elements (penalties)
+    this.validationRules.cultural.forbiddenElements.forEach(element => {
+      if (text.includes(element)) {
+        score -= 25;
+        suggestions.push(`Evitar referencias a "${element}" para mantener el tono apropiado del Día de Muertos`);
+      }
+    });
+
+    // Penalty for modern/inappropriate language
+    const inappropriateTerms = ['ok', 'cool', 'wow', 'super', 'genial'];
+    inappropriateTerms.forEach(term => {
+      if (text.includes(term)) {
+        score -= 10;
+        suggestions.push('Usar vocabulario tradicional mexicano en lugar de términos modernos');
+      }
+    });
+
+    // Bonus for gender concordance (detected through patterns)
+    if ((text.includes('don ') && text.includes('respetado')) || 
+        (text.includes('doña ') && text.includes('respetada'))) {
+      score += 8;
     }
 
     return {
-      isValid: score >= 70,
-      score: Math.min(100, Math.max(0, score)),
-      suggestions: suggestions.slice(0, 3) // Limit suggestions
+      isValid: score >= 75,
+      score: Math.min(100, Math.max(40, score)),
+      suggestions: suggestions.slice(0, 3)
     };
   }
 

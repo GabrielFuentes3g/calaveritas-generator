@@ -1423,14 +1423,17 @@ Analytics Dashboard Styles */
 }
 
 .chart-container {
-  background: var(--light-gray);
+  background: var(--white);
   border-radius: 10px;
   padding: 20px;
-  min-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
+  min-height: 300px;
+  position: relative;
+  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-container canvas {
+  max-height: 250px;
 }
 
 .template-list {
@@ -1637,14 +1640,17 @@ Analytics Dashboard Styles */
 
 /* Trends */
 .trends-container {
-  background: var(--light-gray);
+  background: var(--white);
   border-radius: 10px;
   padding: 20px;
-  min-height: 250px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
+  min-height: 350px;
+  position: relative;
+  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow-sm);
+}
+
+.trends-container canvas {
+  max-height: 300px;
 }
 
 /* Analytics Dashboard Mobile Responsive */

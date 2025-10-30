@@ -7,6 +7,8 @@ class AnalyticsDashboard {
   constructor() {
     this.isVisible = false;
     this.refreshInterval = null;
+    this.templateChart = null;
+    this.trendsChart = null;
     this.initializeDashboard();
   }
 
@@ -294,6 +296,10 @@ class AnalyticsDashboard {
    * Update template analytics display
    */
   updateTemplateAnalytics(analytics) {
+    // Update template usage chart
+    this.updateTemplateUsageChart(analytics);
+    
+    // Update template list
     const templateList = document.getElementById('template-list');
     if (!templateList) return;
 
@@ -316,6 +322,65 @@ class AnalyticsDashboard {
       `;
       
       templateList.appendChild(templateItem);
+    });
+  }
+
+  /**
+   * Update template usage chart
+   */
+  updateTemplateUsageChart(analytics) {
+    const ctx = document.getElementById('template-usage-chart');
+    if (!ctx) return;
+
+    // Destroy existing chart if it exists
+    if (this.templateChart) {
+      this.templateChart.destroy();
+    }
+
+    // Prepare data for chart
+    const labels = analytics.templates.map(t => t.templateId);
+    const data = analytics.templates.map(t => t.count);
+    const colors = [
+      '#6b46c1', '#059669', '#ff6b35', '#3b82f6', 
+      '#f59e0b', '#ef4444', '#8b5cf6', '#10b981'
+    ];
+
+    this.templateChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: '#ffffff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true,
+              font: {
+                size: 12
+              }
+            }
+          },
+          title: {
+            display: true,
+            text: 'Uso de Plantillas',
+            font: {
+              size: 16,
+              weight: 'bold'
+            },
+            padding: 20
+          }
+        }
+      }
     });
   }
 
@@ -451,12 +516,131 @@ class AnalyticsDashboard {
   }
 
   /**
-   * Update trends chart (simplified version)
+   * Update trends chart
    */
   updateTrends(trends) {
-    // This would integrate with a charting library like Chart.js
-    // For now, we'll create a simple text representation
-    console.log('📈 Actualizando tendencias:', trends);
+    const ctx = document.getElementById('trends-chart');
+    if (!ctx) return;
+
+    // Destroy existing chart if it exists
+    if (this.trendsChart) {
+      this.trendsChart.destroy();
+    }
+
+    // Prepare data for last 7 days
+    const last7Days = this.getLast7Days();
+    const dailyData = last7Days.map(date => {
+      return trends.dailyGenerations && trends.dailyGenerations[date] ? trends.dailyGenerations[date] : 0;
+    });
+
+    this.trendsChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: last7Days.map(date => this.formatDateForChart(date)),
+        datasets: [{
+          label: 'Calaveritas Generadas',
+          data: dailyData,
+          borderColor: '#ff6b35',
+          backgroundColor: 'rgba(255, 107, 53, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#ff6b35',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              font: {
+                size: 12
+              }
+            }
+          },
+          title: {
+            display: true,
+            text: 'Tendencias de Generación (Últimos 7 días)',
+            font: {
+              size: 16,
+              weight: 'bold'
+            },
+            padding: 20
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              font: {
+                size: 11
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          },
+          x: {
+            ticks: {
+              font: {
+                size: 11
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        }
+      }
+    });
+  }
+
+  /**
+   * Get last 7 days in format
+   */
+  getLast7Days() {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date.toLocaleDateString('es-MX'));
+    }
+    return days;
+  }
+
+  /**
+   * Format date for chart display
+   */
+  formatDateForChart(dateString) {
+    const date = new Date(dateString.split('/').reverse().join('-'));
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Hoy';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Ayer';
+    } else {
+      return date.toLocaleDateString('es-MX', { 
+        weekday: 'short', 
+        day: 'numeric',
+        month: 'short'
+      });
+    }
   }
 
   /**

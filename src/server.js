@@ -102,6 +102,8 @@ app.get('/api/templates', (req, res) => {
   }
 });
 
+
+
 app.get('/api/history', (req, res) => {
   try {
     const history = dataManager.getHistory();
