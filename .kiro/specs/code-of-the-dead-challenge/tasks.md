@@ -251,6 +251,7 @@
   - [x] 11.1 Crear hook de testing y validación automática
 
     - Implementar .kiro/hooks/auto-test.js con funcionalidades:
+
       - Ejecución automática de tests al guardar archivos .js
       - Validación de sintaxis y linting automático
       - Verificación de plantillas nuevas contra estándares culturales
@@ -271,9 +272,10 @@
       - Tests de integración completos
     - _Requirements: 3.4_
 
-- [ ] 12. Completar documentación y configuración Kiro
 
-  - [ ] 12.1 Documentar stack Kiro completo en README
+- [x] 12. Completar documentación y configuración Kiro
+
+  - [x] 12.1 Documentar stack Kiro completo en README
 
     - Agregar sección "🔧 Kiro Stack Integration" con:
       - Configuración MCP paso a paso con ejemplos
@@ -284,7 +286,8 @@
     - Incluir troubleshooting y FAQ del stack Kiro
     - _Requirements: 3.5, 4.2_
 
-  - [ ] 12.2 Crear ejemplos y demos del stack completo
+  - [x] 12.2 Crear ejemplos y demos del stack completo
+
     - Implementar demo de MCP: validación de plantilla nueva en vivo
     - Crear ejemplo de Steering: aplicación automática de estándares
     - Demostrar Agent Hooks: flujo completo de desarrollo automatizado
