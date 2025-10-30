@@ -166,3 +166,95 @@ Las herramientas MCP se integran automáticamente en el flujo de desarrollo de K
 - **Validación automática** de contenido cultural
 - **Calidad mejorada** con métricas poéticas tradicionales
 - **Flujo integrado** de desarrollo y validación
+
+
+## 🎭 Plantillas Disponibles
+
+El generador incluye 5 plantillas únicas:
+
+### 1. Clásica (`clasica`)
+
+**Descripción:** Estilo tradicional que resalta una característica especial de la persona
+
+**Requiere característica:** ✅ Sí
+
+**Ejemplo de patrón:** "Aquí yace {name}, {profession} querido,\nque por {..."
+
+---
+
+### 2. La Catrina (`catrina`)
+
+**Descripción:** Invoca a la elegante Catrina para llevarse al personaje con gracia
+
+**Requiere característica:** ❌ No
+
+**Ejemplo de patrón:** "La flaca bonita llegó por {name},\n{profession} de..."
+
+---
+
+### 3. El Trabajador (`trabajador`)
+
+**Descripción:** Celebra la dedicación laboral y el buen humor del personaje
+
+**Requiere característica:** ❌ No
+
+**Ejemplo de patrón:** "{name} el {profession} trabajador,\nsiempre fue de..."
+
+---
+
+### 4. El Respetado (`respetado`)
+
+**Descripción:** Honra a personas respetadas destacando su cualidad más admirada
+
+**Requiere característica:** ✅ Sí
+
+**Ejemplo de patrón:** "Don {name}, {profession} respetado,\npor {trait} e..."
+
+---
+
+### 5. De la Montaña (`montaña`)
+
+**Descripción:** Estilo narrativo que cuenta la historia como un cuento tradicional
+
+**Requiere característica:** ❌ No
+
+**Ejemplo de patrón:** "Había una vez {name},\n{profession} de buena gana...."
+
+---
+
+### Uso de Plantillas
+
+```javascript
+// Generar con plantilla específica
+const calaverita = generator.generateWithTemplate(
+  'Juan',      // nombre
+  'doctor',    // profesión
+  'alegre',    // característica (opcional según plantilla)
+  'clasica'    // ID de plantilla
+);
+```
+
+
+
+## 📡 API Reference
+
+La aplicación expone los siguientes endpoints REST:
+
+- **POST** `/api/generate` - Rutas API
+- **GET** `/api/templates` - Endpoint sin descripción
+- **GET** `/api/history` - Endpoint sin descripción
+- **GET** `/api/history/search` - Endpoint sin descripción
+- **DELETE** `/api/history` - Endpoint sin descripción
+- **GET** `/api/stats` - Endpoint sin descripción
+- **GET** `/api/validation/rules` - Endpoint sin descripción
+- **POST** `/api/validation/field` - Endpoint sin descripción
+- **POST** `/api/validation/contextual` - Endpoint sin descripción
+- **POST** `/api/export` - Endpoint sin descripción
+- **GET** `/api/mcp/status` - MCP Integration Endpoints
+- **POST** `/api/mcp/validate-template` - Endpoint sin descripción
+- **POST** `/api/mcp/generate-template` - Endpoint sin descripción
+- **POST** `/api/mcp/generate-enhanced` - Endpoint sin descripción
+- **GET** `/` - Servir la aplicación web
+
+📖 **Documentación completa:** [docs/api.md](docs/api.md)
+

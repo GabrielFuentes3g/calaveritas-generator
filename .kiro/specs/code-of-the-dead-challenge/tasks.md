@@ -192,7 +192,6 @@
 
 - [x] 9. Configurar integración MCP (Model Context Protocol)
 
-
   - [x] 9.1 Configurar servidor MCP profesional
 
     - Crear .kiro/settings/mcp.json con configuración completa:
@@ -228,13 +227,7 @@
 
 - [x] 10. Implementar Steering Rules automáticas
 
-
-
-
-
   - [x] 10.1 Crear reglas de dirección completas
-
-
 
     - Crear .kiro/steering/calaverita-standards.md con estándares completos:
       - Métricas poéticas tradicionales (octosílabos, rima consonante)
@@ -247,26 +240,27 @@
 
   - [x] 10.2 Aplicar steering en desarrollo automático
 
-
     - Configurar aplicación automática de estándares en todas las sesiones
     - Implementar validación contextual cuando se editen plantillas
     - Crear guías específicas para diferentes tipos de archivos
     - Configurar steering condicional para archivos de plantillas vs código
     - _Requirements: 3.2_
 
-- [ ] 11. Desarrollar Agent Hooks automáticos
+- [x] 11. Desarrollar Agent Hooks automáticos
 
-  - [ ] 11.1 Crear hook de testing y validación automática
+  - [x] 11.1 Crear hook de testing y validación automática
 
     - Implementar .kiro/hooks/auto-test.js con funcionalidades:
       - Ejecución automática de tests al guardar archivos .js
       - Validación de sintaxis y linting automático
       - Verificación de plantillas nuevas contra estándares culturales
       - Generación automática de tests para nuevas funciones
+
     - Configurar triggers: onSave, onFileChange, onCommit
     - _Requirements: 3.3, 3.4_
 
-  - [ ] 11.2 Implementar hooks de documentación y deployment
+  - [x] 11.2 Implementar hooks de documentación y deployment
+
     - Crear .kiro/hooks/auto-docs.js para:
       - Actualización automática de README al agregar plantillas
       - Generación de documentación API automática

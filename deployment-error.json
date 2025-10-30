@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-10-30T04:02:40.353Z",
+  "error": "Tests de integración fallaron: Endpoint requerido no encontrado: POST.*/api/generate",
+  "checks": [
+    {
+      "check": "Project Structure",
+      "status": "passed",
+      "details": "7 archivos requeridos verificados"
+    },
+    {
+      "check": "Configuration",
+      "status": "passed",
+      "details": "Configuración de producción validada"
+    },
+    {
+      "check": "Integration Tests",
+      "status": "failed",
+      "details": "Endpoint requerido no encontrado: POST.*/api/generate"
+    }
+  ],
+  "failedChecks": [
+    {
+      "check": "Integration Tests",
+      "status": "failed",
+      "details": "Endpoint requerido no encontrado: POST.*/api/generate"
+    }
+  ],
+  "recommendations": [
+    "Revisar los checks fallidos antes de intentar deployment nuevamente",
+    "Ejecutar tests localmente para identificar problemas",
+    "Verificar que todas las dependencias están instaladas"
+  ]
+}
